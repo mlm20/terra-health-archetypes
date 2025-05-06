@@ -186,6 +186,48 @@ Use Terra's standard normalized health metrics from:
 
 ---
 
+Here’s a `📁 Folder Structure` section you can slot into the spec — modeled on a clean, modular full-stack React + Node.js (Express) architecture, optimized for local development and fast iteration:
+
+---
+
+## 📁 Folder Structure
+
+This is the recommended layout for organizing the local full-stack app:
+
+```
+health-archetypes-demo/
+│
+├── client/                     # Frontend (React + Chakra UI)
+│   ├── public/                 # Static assets (favicons, index.html)
+│   ├── src/
+│   │   ├── assets/             # Images, icons, fonts
+│   │   ├── components/         # Reusable UI components (e.g. SliderCard, Stepper)
+│   │   ├── pages/              # Top-level views (LandingPage, ArchetypePage)
+│   │   ├── hooks/              # Custom React hooks (e.g. useTerraConnect, useStepper)
+│   │   ├── utils/              # Frontend utilities (e.g. formatter, imageExport)
+│   │   ├── theme/              # Chakra UI theme extensions
+│   │   ├── App.tsx
+│   │   └── main.tsx
+│   └── vite.config.ts
+│
+├── server/                     # Backend (Node.js + Express)
+│   ├── routes/                 # API route handlers (e.g. /archetype, /terra)
+│   ├── services/               # LLM, image gen, and Terra data handlers
+│   ├── utils/                  # Shared helpers (e.g. sessionManager, dataParser)
+│   ├── index.ts                # Express app entry point
+│   └── types.ts                # Shared TypeScript types (for LLM prompt, etc.)
+│
+├── shared/                     # Common code (shared between client/server if needed)
+│   └── constants.ts            # Shared enums, prompt strings, slider names
+│
+├── .env                        # API keys (OpenAI, Terra) – local only
+├── package.json                # Root-level dependencies and scripts
+├── tsconfig.json               # TypeScript config
+└── README.md                   # Project setup and run instructions
+```
+
+---
+
 ## ✅ MVP Milestones
 
 * [ ] Local server scaffolding (Vite + Node.js + Express)
