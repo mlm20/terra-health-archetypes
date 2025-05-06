@@ -1,0 +1,23 @@
+{
+  "name": "health-archetypes-demo",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev:client": "npm run dev --prefix client",
+    "dev:server": "npm run dev --prefix server",
+    "dev": "npm-run-all --parallel dev:client dev:server",
+    "build:client": "npm run build --prefix client",
+    "build:server": "npm run build --prefix server",
+    "build": "npm-run-all build:client build:server",
+    "start:server": "npm start --prefix server",
+    "lint": "echo \"Linting not set up yet.\"",
+    "format": "echo \"Formatting not set up yet.\""
+  },
+  "devDependencies": {
+    "npm-run-all": "^4.1.5"
+  },
+  "workspaces": [
+    "client",
+    "server"
+  ]
+} 

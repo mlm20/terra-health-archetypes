@@ -186,10 +186,6 @@ Use Terra's standard normalized health metrics from:
 
 ---
 
-Here’s a `📁 Folder Structure` section you can slot into the spec — modeled on a clean, modular full-stack React + Node.js (Express) architecture, optimized for local development and fast iteration:
-
----
-
 ## 📁 Folder Structure
 
 This is the recommended layout for organizing the local full-stack app:
