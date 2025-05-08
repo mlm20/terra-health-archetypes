@@ -293,31 +293,31 @@ health-archetypes-demo/
 
 #### Landing Page
 
-- [ ] Create `LandingPage.tsx` with CTA + minimal copy
-- [ ] Integrate Terra Widget launch button
-- [ ] Add privacy note ("local only, session deleted")
+- [X] Create `LandingPage.tsx` with CTA + minimal copy
+- [X] Integrate Terra Widget launch button (via `useTerraConnect` hook)
+- [X] Add privacy note ("local only, session deleted")
 
 #### Progress Stepper
 
-- [ ] Create `Stepper.tsx` UI component with 4 labeled states
-- [ ] Animate progression between steps on data fetch
-- [ ] Hook stepper into backend processing stages
+- [X] Create `Stepper.tsx` UI component with 4 labeled states
+- [X] Animate progression between steps on data fetch (Handled by `activeStep` state updates)
+- [X] Hook stepper into backend processing stages (Handled by `useEffect` chain in `ArchetypeFlowPage.tsx`)
 
 #### Archetype Card Display
 
-- [ ] Create `ArchetypeCard.tsx` with:
+- [X] Create `ArchetypeCard.tsx` with:
 
-  - Archetype name + description
-  - Image (OpenAI result)
-  - Sliders with labels
-  - Optional name input
+  - [X] Archetype name + description
+  - [X] Image (OpenAI result)
+  - [X] Sliders with labels
+  - [ ] Optional name input // Still pending
 
 ### 🎨 Image + Export Tools
 
-- [ ] Implement `useImageExport()` custom hook (e.g., using `html-to-image`) for converting a DOM node to an image.
-- [ ] Add a "Copy My Archetype" button/CTA to the `ArchetypeCard.tsx` component.
-- [ ] Implement the CTA functionality: use the `useImageExport` hook to export the `ArchetypeCard` content to a PNG image.
-- [ ] Implement copy-to-clipboard or auto-download for the generated PNG image.
+- [X] Implement `useImageExport()` custom hook (e.g., using `html-to-image`) for converting a DOM node to an image.
+- [X] Add a "Copy My Archetype" button/CTA to the `ArchetypeCard.tsx` component.
+- [X] Implement the CTA functionality: use the `useImageExport` hook to export the `ArchetypeCard` content to a PNG image.
+- [X] Implement copy-to-clipboard or auto-download for the generated PNG image. (Auto-download implemented).
 
 ### ✅ Polishing & Finishing Touches
 

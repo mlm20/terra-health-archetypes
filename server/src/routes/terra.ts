@@ -30,8 +30,8 @@ router.post('/initiate-widget', async (req: Request, res: Response): Promise<voi
     const sessionId = randomUUID();
     initializeSession(sessionId); // Store sessionId to validate later
 
-    const successRedirectUrl = `${FRONTEND_URL}/terra-data-viewer?sessionId=${sessionId}`;
-    const failureRedirectUrl = `${FRONTEND_URL}/terra-data-viewer?error=auth_failed`;
+    const successRedirectUrl = `${FRONTEND_URL}/flow?sessionId=${sessionId}`;
+    const failureRedirectUrl = `${FRONTEND_URL}/?error=auth_failed`;
 
     try {
         const terraApiBody = {
