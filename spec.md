@@ -30,7 +30,7 @@ A fast, privacy-first, no-login web demo where users connect their wearable, get
 **Tone examples:**
 
 - "A snapshot of your fitness energy."
-- "You’re more than your stats. But here’s your style."
+- "You're more than your stats. But here's your style."
 - "Your data? Already wiped like a pro cooldown stretch."
 
 ---
@@ -45,7 +45,7 @@ A fast, privacy-first, no-login web demo where users connect their wearable, get
   - Just one personalized profile
   - Everything is local and deleted after
 
-- 🟢 CTA: “Connect Your Wearable” (launches Terra Widget)
+- 🟢 CTA: "Connect Your Wearable" (launches Terra Widget)
 
 ---
 
@@ -55,10 +55,10 @@ Stepper shows live feedback through the following phases:
 
 | Step | Label                | Copy                                                   |
 | ---- | -------------------- | ------------------------------------------------------ |
-| 1    | Device Connected     | “Wearable linked — syncing your data flow 🛰️”          |
-| 2    | Health Data Obtained | “Cracking open your past workouts, sleep, and vitals…” |
-| 3    | Archetype Discovered | “Channeling your energy into a one-of-a-kind vibe… 🧘‍♂️” |
-| 4    | Data Cleared         | “Data deleted. Nothing saved. You’re all set 🧼”       |
+| 1    | Device Connected     | "Wearable linked — syncing your data flow 🛰️"          |
+| 2    | Health Data Obtained | "Cracking open your past workouts, sleep, and vitals…" |
+| 3    | Archetype Discovered | "Channeling your energy into a one-of-a-kind vibe… 🧘‍♂️" |
+| 4    | Data Cleared         | "Data deleted. Nothing saved. You're all set 🧼"       |
 
 ---
 
@@ -70,7 +70,7 @@ Stepper shows live feedback through the following phases:
 - 🖼 **Low-poly AI-generated image** of the character
 - 🎚 **5 consistent health trait sliders**
 - 🧍 Optional name (entered by user)
-- 📤 CTA: “Copy My Archetype” → converts the card to PNG and copies to clipboard
+- 📤 CTA: "Copy My Archetype" → converts the card to PNG and copies to clipboard
 
 ---
 
@@ -108,12 +108,12 @@ Used to generate name, description, image style, and sliders.
 > SYSTEM PROMPT:
 
 ```
-You are a personality designer generating unique health archetypes based on biometric and lifestyle data. These are not diagnoses — they’re symbolic digital profiles, expressed visually and narratively.
+You are a personality designer generating unique health archetypes based on biometric and lifestyle data. These are not diagnoses — they're symbolic digital profiles, expressed visually and narratively.
 
 For each user, generate:
 
 1. Archetype Name (max 3 words, title case)
-2. Archetype Description: A 1–2 sentence summary of the person’s health "vibe" and strengths
+2. Archetype Description: A 1–2 sentence summary of the person's health "vibe" and strengths
 3. A low-poly image prompt: Describe a digital character in a stylized polygonal art style. Human character, geometric features, bold lighting and colors. Include scene/background. Avoid realism or animals.
 4. Slider values (0–100) for the following 5 health traits:
    - Recovery Readiness
@@ -225,21 +225,36 @@ health-archetypes-demo/
 
 ---
 
+## 📝 Implementation Notes & Considerations
+
+- **Terra API Synchronous Data Fetching:** When fetching historical data using `to_webhook=false` (to get data directly in the API response), request shorter date ranges (e.g., **28 days or less**). Longer ranges may cause Terra to respond with a "Large request submitted" message, indicating asynchronous processing which cannot be handled without a publicly accessible webhook endpoint.
+- **Terra API Response Parsing:** The structure of JSON responses from Terra API endpoints (like `/daily`, `/sleep`, etc.) can vary. Ensure parsing logic (e.g., in the backend's `fetchTerraData` function) correctly handles potential nesting, typically looking for the data array within `response.data.data` or sometimes `response.data`, before defaulting to an empty array on error or unexpected structure.
+- **Vite Dev Server Proxy:** When running the React frontend (Vite) and Node.js backend locally on different ports, configure Vite's `server.proxy` in `vite.config.ts` to forward API requests (e.g., `/api/*`) from the frontend to the backend server's port (e.g., `http://localhost:3000`). Remember to restart the Vite dev server after modifying the config.
+- **Local Authentication Flow (No Webhooks):** The current simplified setup avoids external webhooks by having the frontend extract `user_id` from Terra's redirect URL and send it to a dedicated backend endpoint (`/api/terra/confirm-auth`) to associate it with the session ID. This relies on Terra consistently providing `user_id` in the success redirect parameters.
+
+---
+
 ## ✅ MVP Milestones
 
 ### 📊 Terra Data Handling
 
-- [ ] Add Terra credentials to .env
-- [ ] Create `/terra` backend route to handle widget callback
-- [ ] Create `getUserHealthData()` service to fetch from `/daily`, `/sleep`, `/activity`, `/body`
-- [ ] Normalize Terra API response into archetype-ready JSON
-- [ ] Add fallback handling for missing data (e.g. body comp)
+- [X] Add API credentials to `.env` (Terra DEV_ID, API_KEY)
+- [X] Implement backend logic for a local Terra widget authentication flow (no webhooks), including:
+    - Session ID generation and management for the widget interaction.
+    - Secure server-side call to Terra to obtain the widget session URL (embedding our `sessionId`).
+    - A backend endpoint for the frontend to confirm `terraUserId` (obtained from Terra's redirect URL) against a `sessionId`, storing this mapping.
+- [X] Develop backend services to:
+    - Fetch a user's health data arrays (daily, sleep, activity, body) from the Terra API.
+    - Package these data arrays into a unified JSON report, noting data availability.
+- [X] Implement a backend mechanism to make the packaged health data report accessible via a session identifier.
+- [X] Include basic fallback considerations for missing data categories in the health data report.
+- [X] Implement temporary frontend page to test Terra data flow.
 
 ### 🧠 AI Archetype Generation
 
-- [ ] Create `/archetype` backend route
-- [ ] Construct system prompt (move to `shared/constants.ts`)
-- [ ] Add Terra credentials to .env
+- [X] Create `/archetype` backend route
+- [X] Construct system prompt (move to `shared/constants.ts`)
+- [ ] Add OpenAI credentials to `.env`
 - [ ] Implement OpenAI call with retries + error handling
 - [ ] Return archetype name, description, image prompt, and sliders
 

@@ -1,5 +1,7 @@
 import express, { Express, Request, Response } from 'express';
 import dotenv from 'dotenv';
+import terraRouter from './routes/terra'; // Import Terra routes
+import archetypeRouter from './routes/archetype'; // Import Archetype routes
 
 dotenv.config({ path: '../.env' }); // Load environment variables from root .env file
 
@@ -13,9 +15,9 @@ app.get('/', (req: Request, res: Response) => {
   res.send('Health Archetypes API is running!');
 });
 
-// Placeholder for future routes
-// app.use('/api/terra', terraRoutes);
-// app.use('/api/archetype', archetypeRoutes);
+// API routes
+app.use('/api/terra', terraRouter); // Use Terra routes
+app.use('/api/archetype', archetypeRouter); // Use Archetype routes
 
 app.listen(port, () => {
   console.log(`[server]: Server is running at http://localhost:${port}`);
