@@ -17,7 +17,9 @@ import {
     AccordionPanel,
     AccordionIcon,
     Divider,
+    Flex,
 } from '@chakra-ui/react';
+import Navbar from '../components/Navbar';
 
 // Define the structure of the expected data report from the backend
 interface HealthDataReport {
@@ -225,162 +227,165 @@ export const TerraDataViewerPage: React.FC = () => {
     };
 
     return (
-        <Container maxW="container.xl" py={10}>
-            <VStack spacing={6} align="stretch">
-                <Heading as="h1" size="xl" textAlign="center">
-                    Terra & Archetype Test Page
-                </Heading>
+        <Flex direction="column" minH="100vh">
+            <Navbar />
+            <Container maxW="container.xl" py={10}>
+                <VStack spacing={6} align="stretch">
+                    <Heading as="h1" size="xl" textAlign="center">
+                        Terra & Archetype Test Page
+                    </Heading>
 
-                {!dataReport && !isLoadingData && (
-                    <Button 
-                        colorScheme="teal" 
-                        onClick={handleConnectTerra} 
-                        isLoading={isLoadingData} 
-                        loadingText={loadingMessage}
-                        size="lg"
-                        alignSelf="center"
-                    >
-                        Connect to Terra & Fetch Data
-                    </Button>
-                )}
+                    {!dataReport && !isLoadingData && (
+                        <Button 
+                            colorScheme="teal" 
+                            onClick={handleConnectTerra} 
+                            isLoading={isLoadingData} 
+                            loadingText={loadingMessage}
+                            size="lg"
+                            alignSelf="center"
+                        >
+                            Connect to Terra & Fetch Data
+                        </Button>
+                    )}
 
-                {(isLoadingData || isGeneratingArchetype || isGeneratingImage) && (
-                    <Box textAlign="center">
-                        <Spinner size="xl" />
-                        <Text mt={2}>
-                            {isGeneratingImage ? 'Generating Image...' 
-                             : isGeneratingArchetype ? 'Generating Archetype...' 
-                             : loadingMessage}
+                    {(isLoadingData || isGeneratingArchetype || isGeneratingImage) && (
+                        <Box textAlign="center">
+                            <Spinner size="xl" />
+                            <Text mt={2}>
+                                {isGeneratingImage ? 'Generating Image...' 
+                                 : isGeneratingArchetype ? 'Generating Archetype...' 
+                                 : loadingMessage}
+                            </Text>
+                        </Box>
+                    )}
+
+                    {error && (
+                        <Alert status="error" mt={4}>
+                            <AlertIcon />
+                            {error}
+                        </Alert>
+                    )}
+                    {archetypeError && (
+                        <Alert status="error" mt={4}>
+                            <AlertIcon />
+                            {archetypeError}
+                        </Alert>
+                    )}
+                    {imageError && (
+                        <Alert status="error" mt={4}>
+                            <AlertIcon />
+                            {imageError}
+                        </Alert>
+                    )}
+
+                    {/* Single Accordion for all collapsible content */}
+                    <Accordion allowToggle defaultIndex={[]}>
+                        {dataReport && (
+                            <AccordionItem>
+                                <h2>
+                                    <AccordionButton>
+                                        <Box flex="1" textAlign="left">
+                                            <Heading size="md">Terra Health Data Report</Heading>
+                                        </Box>
+                                        <AccordionIcon />
+                                    </AccordionButton>
+                                </h2>
+                                <AccordionPanel pb={4}>
+                                    <Box borderWidth="1px" borderRadius="lg" p={4} overflowX="auto" bg="gray.50">
+                                        <Code as="pre" p={2} borderRadius="md" whiteSpace="pre-wrap" wordBreak="break-all">
+                                            {JSON.stringify(dataReport, null, 2)}
+                                        </Code>
+                                    </Box>
+                                </AccordionPanel>
+                            </AccordionItem>
+                        )}
+
+                        {/* AI Health Archetype Section (Text) */}
+                        {archetypeResult && (
+                            <AccordionItem>
+                                <h2>
+                                    <AccordionButton>
+                                        <Box flex="1" textAlign="left">
+                                            <Heading size="md">AI Health Archetype</Heading>
+                                        </Box>
+                                        <AccordionIcon />
+                                    </AccordionButton>
+                                </h2>
+                                <AccordionPanel pb={4}>
+                                    <VStack align="start" spacing={3}>
+                                        <Text><strong>Name:</strong> {archetypeResult.archetypeName}</Text>
+                                        <Text><strong>Description:</strong> {archetypeResult.archetypeDescription}</Text>
+                                        <Text><strong>Image Prompt:</strong> <Code>{archetypeResult.imagePrompt}</Code></Text>
+                                        <Text><strong>Sliders:</strong></Text>
+                                        <Box pl={4}>
+                                            {Object.entries(archetypeResult.sliderValues).map(([key, value]) => (
+                                                <Text key={key}>{key}: {value}</Text>
+                                            ))}
+                                        </Box>
+                                    </VStack>
+                                    {/* Display Image Generation Button if archetype is loaded, prompt exists, and no image yet */}
+                                    {archetypeResult.imagePrompt && !imageDataUrl && !isGeneratingImage && (
+                                        <Button 
+                                            colorScheme="green" 
+                                            onClick={handleGenerateImage} 
+                                            isLoading={isGeneratingImage} 
+                                            loadingText="Generating Image..."
+                                            size="md"
+                                            mt={4}
+                                        >
+                                            Generate Archetype Image
+                                        </Button>
+                                    )}
+                                </AccordionPanel>
+                            </AccordionItem>
+                        )}
+
+                        {/* Generated Archetype Image Section */}
+                        {imageDataUrl && !isGeneratingImage && archetypeResult && (
+                            <AccordionItem>
+                                <h2>
+                                    <AccordionButton>
+                                        <Box flex="1" textAlign="left">
+                                            <Heading size="md">Generated Archetype Image</Heading>
+                                        </Box>
+                                        <AccordionIcon />
+                                    </AccordionButton>
+                                </h2>
+                                <AccordionPanel pb={4} textAlign="center">
+                                    <img 
+                                        src={imageDataUrl} 
+                                        alt={`${archetypeResult.archetypeName || 'Generated'} Archetype Avatar`} 
+                                        style={{ maxWidth: '100%', maxHeight: '512px', margin: 'auto', border: '1px solid #eee' }}
+                                    />
+                                </AccordionPanel>
+                            </AccordionItem>
+                        )}
+                    </Accordion>
+                    
+                    {/* Button to Generate Archetype - appears after data report is loaded and before archetype is generated */}
+                    {dataReport && !archetypeResult && !isGeneratingArchetype && (
+                        <Button 
+                            colorScheme="purple" 
+                            onClick={handleGenerateArchetype} 
+                            isLoading={isGeneratingArchetype} 
+                            loadingText="Generating Archetype..." // Updated loading text
+                            size="lg"
+                            alignSelf="center"
+                            mt={4}
+                        >
+                            Generate Archetype
+                        </Button>
+                    )}
+
+                    {sessionIdFromUrl && !isLoadingData && !dataReport && !error && (
+                        <Text textAlign="center">
+                            Session active: {sessionIdFromUrl}. 
+                            {searchParams.get('user_id') ? 'Awaiting data...' : 'Ready to connect or waiting for redirect.'}
                         </Text>
-                    </Box>
-                )}
-
-                {error && (
-                    <Alert status="error" mt={4}>
-                        <AlertIcon />
-                        {error}
-                    </Alert>
-                )}
-                {archetypeError && (
-                    <Alert status="error" mt={4}>
-                        <AlertIcon />
-                        {archetypeError}
-                    </Alert>
-                )}
-                {imageError && (
-                    <Alert status="error" mt={4}>
-                        <AlertIcon />
-                        {imageError}
-                    </Alert>
-                )}
-
-                {/* Single Accordion for all collapsible content */}
-                <Accordion allowToggle defaultIndex={[]}>
-                    {dataReport && (
-                        <AccordionItem>
-                            <h2>
-                                <AccordionButton>
-                                    <Box flex="1" textAlign="left">
-                                        <Heading size="md">Terra Health Data Report</Heading>
-                                    </Box>
-                                    <AccordionIcon />
-                                </AccordionButton>
-                            </h2>
-                            <AccordionPanel pb={4}>
-                                <Box borderWidth="1px" borderRadius="lg" p={4} overflowX="auto" bg="gray.50">
-                                    <Code as="pre" p={2} borderRadius="md" whiteSpace="pre-wrap" wordBreak="break-all">
-                                        {JSON.stringify(dataReport, null, 2)}
-                                    </Code>
-                                </Box>
-                            </AccordionPanel>
-                        </AccordionItem>
                     )}
 
-                    {/* AI Health Archetype Section (Text) */}
-                    {archetypeResult && (
-                        <AccordionItem>
-                            <h2>
-                                <AccordionButton>
-                                    <Box flex="1" textAlign="left">
-                                        <Heading size="md">AI Health Archetype</Heading>
-                                    </Box>
-                                    <AccordionIcon />
-                                </AccordionButton>
-                            </h2>
-                            <AccordionPanel pb={4}>
-                                <VStack align="start" spacing={3}>
-                                    <Text><strong>Name:</strong> {archetypeResult.archetypeName}</Text>
-                                    <Text><strong>Description:</strong> {archetypeResult.archetypeDescription}</Text>
-                                    <Text><strong>Image Prompt:</strong> <Code>{archetypeResult.imagePrompt}</Code></Text>
-                                    <Text><strong>Sliders:</strong></Text>
-                                    <Box pl={4}>
-                                        {Object.entries(archetypeResult.sliderValues).map(([key, value]) => (
-                                            <Text key={key}>{key}: {value}</Text>
-                                        ))}
-                                    </Box>
-                                </VStack>
-                                {/* Display Image Generation Button if archetype is loaded, prompt exists, and no image yet */}
-                                {archetypeResult.imagePrompt && !imageDataUrl && !isGeneratingImage && (
-                                    <Button 
-                                        colorScheme="green" 
-                                        onClick={handleGenerateImage} 
-                                        isLoading={isGeneratingImage} 
-                                        loadingText="Generating Image..."
-                                        size="md"
-                                        mt={4}
-                                    >
-                                        Generate Archetype Image
-                                    </Button>
-                                )}
-                            </AccordionPanel>
-                        </AccordionItem>
-                    )}
-
-                    {/* Generated Archetype Image Section */}
-                    {imageDataUrl && !isGeneratingImage && archetypeResult && (
-                        <AccordionItem>
-                            <h2>
-                                <AccordionButton>
-                                    <Box flex="1" textAlign="left">
-                                        <Heading size="md">Generated Archetype Image</Heading>
-                                    </Box>
-                                    <AccordionIcon />
-                                </AccordionButton>
-                            </h2>
-                            <AccordionPanel pb={4} textAlign="center">
-                                <img 
-                                    src={imageDataUrl} 
-                                    alt={`${archetypeResult.archetypeName || 'Generated'} Archetype Avatar`} 
-                                    style={{ maxWidth: '100%', maxHeight: '512px', margin: 'auto', border: '1px solid #eee' }}
-                                />
-                            </AccordionPanel>
-                        </AccordionItem>
-                    )}
-                </Accordion>
-                
-                {/* Button to Generate Archetype - appears after data report is loaded and before archetype is generated */}
-                {dataReport && !archetypeResult && !isGeneratingArchetype && (
-                    <Button 
-                        colorScheme="purple" 
-                        onClick={handleGenerateArchetype} 
-                        isLoading={isGeneratingArchetype} 
-                        loadingText="Generating Archetype..." // Updated loading text
-                        size="lg"
-                        alignSelf="center"
-                        mt={4}
-                    >
-                        Generate Archetype
-                    </Button>
-                )}
-
-                {sessionIdFromUrl && !isLoadingData && !dataReport && !error && (
-                    <Text textAlign="center">
-                        Session active: {sessionIdFromUrl}. 
-                        {searchParams.get('user_id') ? 'Awaiting data...' : 'Ready to connect or waiting for redirect.'}
-                    </Text>
-                )}
-
-            </VStack>
-        </Container>
+                </VStack>
+            </Container>
+        </Flex>
     );
 }; 

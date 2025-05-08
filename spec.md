@@ -310,7 +310,6 @@ health-archetypes-demo/
   - [X] Archetype name + description
   - [X] Image (OpenAI result)
   - [X] Sliders with labels
-  - [ ] Optional name input // Still pending
 
 ### 🎨 Image + Export Tools
 
@@ -323,7 +322,6 @@ health-archetypes-demo/
 
 - [ ] Validate all inputs and UI states
 - [ ] Add animation microinteractions (e.g. Framer Motion)
-- [ ] Add fallback illustrations or placeholders
-- [ ] Add favicon + site meta
+- [X] Add favicon + site meta
 - [ ] Write concise README with local dev instructions
 
