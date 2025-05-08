@@ -103,7 +103,7 @@ These are the **same across all users** but each archetype reflects unique value
 
 ## 🤖 LLM Archetype Generation Prompt
 
-Used to generate name, description, image style, and sliders.
+Used to generate name, description, image style, and sliders. The target LLM for this prompt is `gpt-4.1-mini`.
 
 > SYSTEM PROMPT:
 
@@ -231,6 +231,11 @@ health-archetypes-demo/
 - **Terra API Response Parsing:** The structure of JSON responses from Terra API endpoints (like `/daily`, `/sleep`, etc.) can vary. Ensure parsing logic (e.g., in the backend's `fetchTerraData` function) correctly handles potential nesting, typically looking for the data array within `response.data.data` or sometimes `response.data`, before defaulting to an empty array on error or unexpected structure.
 - **Vite Dev Server Proxy:** When running the React frontend (Vite) and Node.js backend locally on different ports, configure Vite's `server.proxy` in `vite.config.ts` to forward API requests (e.g., `/api/*`) from the frontend to the backend server's port (e.g., `http://localhost:3000`). Remember to restart the Vite dev server after modifying the config.
 - **Local Authentication Flow (No Webhooks):** The current simplified setup avoids external webhooks by having the frontend extract `user_id` from Terra's redirect URL and send it to a dedicated backend endpoint (`/api/terra/confirm-auth`) to associate it with the session ID. This relies on Terra consistently providing `user_id` in the success redirect parameters.
+- **OpenAI API Key and Credits:** An OpenAI API key must be obtained from [platform.openai.com](https://platform.openai.com/) and added to the `.env` file as `OPENAI_API_KEY`. Ensure the associated OpenAI account has sufficient credits or a payment method set up, as both text and image generation API calls incur costs.
+- **OpenAI Node.js Library:** The backend uses the official `openai` library (`npm install openai`) for interacting with OpenAI APIs (Chat Completions, Image Generation).
+- **Environment Variable Loading (`.env`):** Ensure `dotenv.config()` is called at the **very beginning** of `server/src/index.ts`, before any other modules are imported, especially those that initialize clients or services requiring environment variables (e.g., OpenAI client). If the `.env` file is in the project root, the path for the server (running from `server/`) should be `dotenv.config({ path: '../.env' });`. Incorrect loading order or path will lead to errors like missing API keys.
+- **TypeScript `unknown` Type Handling:** When fetching data from external APIs (e.g., Terra, OpenAI), the response is often typed as `unknown` after `response.json()`. To ensure type safety and prevent runtime errors, define appropriate TypeScript interfaces that model the expected API response structure. Use type assertion (e.g., `const jsonData = await response.json() as MyExpectedInterface;`) to inform TypeScript about the data's shape.
+- **Port Conflict (EADDRINUSE):** If the backend server fails to start with an `EADDRINUSE` error (e.g., "address already in use :::3000"), it means another process is already using the designated port. Identify and stop the conflicting process (e.g., using `lsof -i :PORT` and `kill -9 PID` on macOS/Linux) before attempting to restart the server.
 
 ---
 
@@ -255,8 +260,9 @@ health-archetypes-demo/
 - [X] Create `/archetype` backend route
 - [X] Construct system prompt (move to `shared/constants.ts`)
 - [ ] Add OpenAI credentials to `.env`
-- [ ] Implement OpenAI call with retries + error handling
-- [ ] Return archetype name, description, image prompt, and sliders
+- [X] Implement OpenAI call with retries + error handling
+- [X] Return archetype name, description, image prompt, and sliders
+- [ ] Extend frontend test page (`TerraDataViewerPage`) to call archetype generation endpoint and display LLM response.
 
 ### 🖼 Image Generation Pipeline
 

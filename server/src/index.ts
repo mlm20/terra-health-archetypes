@@ -1,9 +1,9 @@
-import express, { Express, Request, Response } from 'express';
 import dotenv from 'dotenv';
+dotenv.config({ path: '../.env' }); // Load environment variables FIRST
+
+import express, { Express, Request, Response } from 'express';
 import terraRouter from './routes/terra'; // Import Terra routes
 import archetypeRouter from './routes/archetype'; // Import Archetype routes
-
-dotenv.config({ path: '../.env' }); // Load environment variables from root .env file
 
 const app: Express = express();
 const port = process.env.PORT || 3000;

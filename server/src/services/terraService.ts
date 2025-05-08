@@ -18,6 +18,16 @@ export interface LLMReadyHealthReport {
     dataAvailabilityNotes: string[];
 }
 
+// Define an interface for the expected structure of Terra API responses
+// This helps handle cases where the actual data array might be nested
+interface TerraApiResponseData {
+    data?: any[] | { data?: any[] }; // The data property can be an array or an object containing another data array
+    // Add other potential top-level properties if known, e.g., status, message, etc.
+    status?: string;
+    message?: string;
+    // ... any other fields that might appear at the top level of the JSON response
+}
+
 interface FetchOptions {
     headers: {
         'dev-id': string;
@@ -34,27 +44,46 @@ async function fetchTerraData(endpoint: string, userId: string, startDate: strin
             console.error(`Terra API Error (${endpoint}, ${response.status}): ${errorBody}`);
             return []; 
         }
-        const jsonData = await response.json();
+        // Assert the type of jsonData after parsing
+        const jsonData = await response.json() as TerraApiResponseData;
         
-        // Updated Parsing Logic:
+        // Updated Parsing Logic with type safety:
         // Check for the nested structure first (e.g., dashboard-like response)
-        if (jsonData.data && typeof jsonData.data === 'object' && Array.isArray(jsonData.data.data)) {
-            return jsonData.data.data; 
+        if (jsonData.data && typeof jsonData.data === 'object' && !Array.isArray(jsonData.data) && jsonData.data.data && Array.isArray(jsonData.data.data)) {
+            return jsonData.data.data;
         } 
         // Check for direct data array (e.g., some webhook-like structures or simpler API responses)
-        else if (Array.isArray(jsonData.data)) {
+        else if (jsonData.data && Array.isArray(jsonData.data)) {
             return jsonData.data; 
-        } 
-        // Handle cases where data might be at the top level (less common for list endpoints)
-        else if (Array.isArray(jsonData)) {
-             console.warn(`Terra API response for ${endpoint} was directly an array.`);
-             return jsonData;
         }
+        // Handle cases where data might be at the top level (less common for list endpoints but possible)
+        // This case is unusual since the original code implied jsonData itself could be an array if it was the direct data source
+        // However, our TerraApiResponseData models 'data' as a property. If the entire response IS an array, this interface needs adjustment
+        // For now, sticking to the pattern that 'data' is a property.
+        // else if (Array.isArray(jsonData)) { // This check is problematic if jsonData is TerraApiResponseData
+        //      console.warn(`Terra API response for ${endpoint} was directly an array. This is unexpected with TerraApiResponseData type.`);
+        //      return jsonData; // This would be a type error if jsonData is TerraApiResponseData unless type is 'any[] | TerraApiResponseData'
+        // }
+
         // Log unexpected structure but return empty array to avoid breaking Promise.all
-        else {
-            console.warn(`Unexpected Terra API response structure for ${endpoint}. Could not find data array:`, JSON.stringify(jsonData));
-            return [];
+        // console.warn(`Unexpected Terra API response structure for ${endpoint}. Could not find data array:`, JSON.stringify(jsonData));
+        // The previous check for Array.isArray(jsonData) is removed to align with TerraApiResponseData structure.
+        // If the API can return a direct array, then the type of jsonData needs to be `TerraApiResponseData | any[]`
+        // and the logic below needs to handle that. For now, assuming data is always under a property.
+
+        // More robust check based on the defined interface:
+        const outerData = jsonData.data;
+        if (outerData) {
+            if (Array.isArray(outerData)) {
+                return outerData; // Direct data array: { "data": [...] }
+            } else if (typeof outerData === 'object' && outerData.data && Array.isArray(outerData.data)) {
+                return outerData.data; // Nested data array: { "data": { "data": [...] } }
+            }
         }
+
+        // If neither of the above, log and return empty.
+        console.warn(`Unexpected Terra API response structure for ${endpoint}. Could not find data array in expected locations:`, JSON.stringify(jsonData));
+        return [];
     } catch (error) {
         console.error(`Error calling Terra API for ${endpoint}:`, error);
         return []; 

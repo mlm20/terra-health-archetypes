@@ -9,6 +9,13 @@ const router = express.Router();
 const TERRA_API_WIDGET_URL = 'https://api.tryterra.co/v2/auth/generateWidgetSession';
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173'; // For redirect URLs
 
+// Interface for the expected Terra API response
+interface TerraWidgetSessionResponse {
+  status: string;
+  url?: string; 
+  message?: string;
+}
+
 // NEW: Endpoint to initiate Terra Widget connection
 router.post('/initiate-widget', async (req: Request, res: Response): Promise<void> => {
     const devId = process.env.TERRA_DEV_ID;
@@ -46,16 +53,19 @@ router.post('/initiate-widget', async (req: Request, res: Response): Promise<voi
             body: JSON.stringify(terraApiBody),
         });
 
-        const responseData = await terraResponse.json();
+        // Assert the type after parsing JSON
+        const responseData = await terraResponse.json() as TerraWidgetSessionResponse;
 
-        if (!terraResponse.ok || responseData.status !== 'success') {
-            console.error('Terra generateWidgetSession API error:', responseData);
-            res.status(500).json({ error: 'Failed to initiate Terra widget session.', details: responseData.message });
+        // Now TypeScript knows the potential shape of responseData
+        if (!terraResponse.ok || responseData.status !== 'success' || !responseData.url) {
+            console.error('Terra generateWidgetSession API error or missing URL:', responseData);
+            // Use optional chaining for message as it might not exist
+            res.status(500).json({ error: 'Failed to initiate Terra widget session.', details: responseData?.message || 'Unknown API error' });
             return;
         }
 
         res.status(200).json({ 
-            widgetUrl: responseData.url, 
+            widgetUrl: responseData.url, // Now safe to access .url
             sessionId: sessionId 
         });
 

@@ -11,6 +11,12 @@ import {
     Code,
     VStack,
     Container,
+    Accordion,
+    AccordionItem,
+    AccordionButton,
+    AccordionPanel,
+    AccordionIcon,
+    Divider,
 } from '@chakra-ui/react';
 
 // Define the structure of the expected data report from the backend
@@ -25,12 +31,28 @@ interface HealthDataReport {
     dataAvailabilityNotes: string[];
 }
 
+// Structure of the Archetype data from backend (matches LLMArchetypeResponse)
+interface ArchetypeResult {
+    archetypeName: string;
+    archetypeDescription: string;
+    imagePrompt: string;
+    sliderValues: {
+        recoveryReadiness: number;
+        activityLoad: number;
+        sleepStability: number;
+        heartRhythmBalance: number;
+        consistency: number;
+    };
+}
+
 export const TerraDataViewerPage: React.FC = () => {
     const [searchParams] = useSearchParams();
-    const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [isLoadingData, setIsLoadingData] = useState<boolean>(false);
+    const [isGenerating, setIsGenerating] = useState<boolean>(false);
     const [loadingMessage, setLoadingMessage] = useState<string>('Loading...');
     const [error, setError] = useState<string | null>(null);
     const [dataReport, setDataReport] = useState<HealthDataReport | null>(null);
+    const [archetypeResult, setArchetypeResult] = useState<ArchetypeResult | null>(null);
     const [sessionIdFromUrl, setSessionIdFromUrl] = useState<string | null>(null);
 
     useEffect(() => {
@@ -40,7 +62,7 @@ export const TerraDataViewerPage: React.FC = () => {
 
         if (authError) {
             setError(`Authentication with Terra failed: ${authError}. Please try again.`);
-            setIsLoading(false);
+            setIsLoadingData(false);
             return;
         }
 
@@ -49,7 +71,7 @@ export const TerraDataViewerPage: React.FC = () => {
             if (terraUserIdFromRedirect) {
                 // New step: Confirm auth with backend using details from URL
                 setLoadingMessage('Confirming authentication...');
-                setIsLoading(true);
+                setIsLoadingData(true);
                 fetch('/api/terra/confirm-auth', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -84,7 +106,7 @@ export const TerraDataViewerPage: React.FC = () => {
                     setDataReport(null);
                 })
                 .finally(() => {
-                    setIsLoading(false);
+                    setIsLoadingData(false);
                     setLoadingMessage('Loading...');
                 });
             } else if (!dataReport) {
@@ -100,16 +122,15 @@ export const TerraDataViewerPage: React.FC = () => {
     }, [searchParams]); // Removed dataReport from dependency array to avoid re-triggering on setDataReport
 
     const handleConnectTerra = async () => {
-        setIsLoading(true);
+        setIsLoadingData(true);
         setError(null);
         setDataReport(null);
+        setArchetypeResult(null);
         setSessionIdFromUrl(null);
         try {
             const response = await fetch('/api/terra/initiate-widget', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 // body: JSON.stringify({}), // No body needed for this endpoint based on backend
             });
             if (!response.ok) {
@@ -126,7 +147,35 @@ export const TerraDataViewerPage: React.FC = () => {
         } catch (err: any) {
             console.error('Error initiating Terra connection:', err);
             setError(err.message || 'Failed to initiate Terra connection.');
-            setIsLoading(false);
+            setIsLoadingData(false);
+        }
+    };
+
+    const handleGenerateArchetype = async () => {
+        if (!sessionIdFromUrl) {
+            setError('No active session ID found to generate archetype.');
+            return;
+        }
+        setIsGenerating(true);
+        setError(null);
+        setArchetypeResult(null);
+        try {
+            const response = await fetch('/api/archetype/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sessionId: sessionIdFromUrl }),
+            });
+             if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ message: 'Failed to parse error response' }));
+                throw new Error(errorData.error || `Archetype generation failed: ${response.status}`);
+            }
+            const result: ArchetypeResult = await response.json();
+            setArchetypeResult(result);
+        } catch (err: any) {
+             console.error('Error generating archetype:', err);
+            setError(err.message || 'An unknown error occurred while generating the archetype.');
+        } finally {
+            setIsGenerating(false);
         }
     };
 
@@ -134,14 +183,14 @@ export const TerraDataViewerPage: React.FC = () => {
         <Container maxW="container.xl" py={10}>
             <VStack spacing={6} align="stretch">
                 <Heading as="h1" size="xl" textAlign="center">
-                    Terra Health Data Viewer (Test Page)
+                    Terra & Archetype Test Page
                 </Heading>
 
-                {!sessionIdFromUrl && !dataReport && (
+                {!dataReport && !isLoadingData && (
                     <Button 
                         colorScheme="teal" 
                         onClick={handleConnectTerra} 
-                        isLoading={isLoading} 
+                        isLoading={isLoadingData} 
                         loadingText={loadingMessage}
                         size="lg"
                         alignSelf="center"
@@ -150,10 +199,10 @@ export const TerraDataViewerPage: React.FC = () => {
                     </Button>
                 )}
 
-                {isLoading && (
+                {(isLoadingData || isGenerating) && (
                     <Box textAlign="center">
                         <Spinner size="xl" />
-                        <Text mt={2}>{loadingMessage}</Text>
+                        <Text mt={2}>{isGenerating ? 'Generating Archetype...' : loadingMessage}</Text>
                     </Box>
                 )}
 
@@ -165,14 +214,64 @@ export const TerraDataViewerPage: React.FC = () => {
                 )}
 
                 {dataReport && (
-                    <Box borderWidth="1px" borderRadius="lg" p={6} overflowX="auto">
-                        <Heading as="h2" size="lg" mb={4}>Fetched Health Data Report</Heading>
-                        <Code as="pre" p={4} borderRadius="md" whiteSpace="pre-wrap" wordBreak="break-all">
-                            {JSON.stringify(dataReport, null, 2)}
-                        </Code>
-                    </Box>
+                    <Accordion allowToggle defaultIndex={[0]}>
+                        <AccordionItem>
+                            <h2>
+                                <AccordionButton>
+                                    <Box flex="1" textAlign="left">
+                                        <Heading size="md">Terra Health Data Report</Heading>
+                                    </Box>
+                                    <AccordionIcon />
+                                </AccordionButton>
+                            </h2>
+                            <AccordionPanel pb={4}>
+                                <Box borderWidth="1px" borderRadius="lg" p={4} overflowX="auto" bg="gray.50">
+                                    <Code as="pre" p={2} borderRadius="md" whiteSpace="pre-wrap" wordBreak="break-all">
+                                        {JSON.stringify(dataReport, null, 2)}
+                                    </Code>
+                                </Box>
+                            </AccordionPanel>
+                        </AccordionItem>
+                    </Accordion>
                 )}
-                 {sessionIdFromUrl && !isLoading && !dataReport && !error && (
+
+                {dataReport && !archetypeResult && (
+                    <Button 
+                        colorScheme="purple" 
+                        onClick={handleGenerateArchetype} 
+                        isLoading={isGenerating} 
+                        loadingText="Generating..."
+                        size="lg"
+                        alignSelf="center"
+                        mt={4}
+                    >
+                        Generate Archetype
+                    </Button>
+                )}
+
+                {archetypeResult && (
+                    <Accordion allowToggle defaultIndex={[0]}>
+                        <AccordionItem>
+                            <h2>
+                                <AccordionButton>
+                                    <Box flex="1" textAlign="left">
+                                        <Heading size="md">Generated Archetype (LLM Output)</Heading>
+                                    </Box>
+                                    <AccordionIcon />
+                                </AccordionButton>
+                            </h2>
+                            <AccordionPanel pb={4}>
+                                <Box borderWidth="1px" borderRadius="lg" p={4} overflowX="auto" bg="gray.50">
+                                    <Code as="pre" p={2} borderRadius="md" whiteSpace="pre-wrap" wordBreak="break-all">
+                                        {JSON.stringify(archetypeResult, null, 2)}
+                                    </Code>
+                                </Box>
+                            </AccordionPanel>
+                        </AccordionItem>
+                    </Accordion>
+                )}
+
+                {sessionIdFromUrl && !isLoadingData && !dataReport && !error && (
                     <Text textAlign="center">
                         Session active: {sessionIdFromUrl}. 
                         {searchParams.get('user_id') ? 'Awaiting data...' : 'Ready to connect or waiting for redirect.'}
