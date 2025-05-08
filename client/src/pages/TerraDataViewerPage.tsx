@@ -43,16 +43,21 @@ interface ArchetypeResult {
         heartRhythmBalance: number;
         consistency: number;
     };
+    imageDataUrl?: string;
 }
 
 export const TerraDataViewerPage: React.FC = () => {
     const [searchParams] = useSearchParams();
     const [isLoadingData, setIsLoadingData] = useState<boolean>(false);
-    const [isGenerating, setIsGenerating] = useState<boolean>(false);
+    const [isGeneratingArchetype, setIsGeneratingArchetype] = useState<boolean>(false);
+    const [isGeneratingImage, setIsGeneratingImage] = useState<boolean>(false);
     const [loadingMessage, setLoadingMessage] = useState<string>('Loading...');
     const [error, setError] = useState<string | null>(null);
+    const [archetypeError, setArchetypeError] = useState<string | null>(null);
+    const [imageError, setImageError] = useState<string | null>(null);
     const [dataReport, setDataReport] = useState<HealthDataReport | null>(null);
     const [archetypeResult, setArchetypeResult] = useState<ArchetypeResult | null>(null);
+    const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
     const [sessionIdFromUrl, setSessionIdFromUrl] = useState<string | null>(null);
 
     useEffect(() => {
@@ -124,8 +129,11 @@ export const TerraDataViewerPage: React.FC = () => {
     const handleConnectTerra = async () => {
         setIsLoadingData(true);
         setError(null);
+        setArchetypeError(null);
+        setImageError(null);
         setDataReport(null);
         setArchetypeResult(null);
+        setImageDataUrl(null);
         setSessionIdFromUrl(null);
         try {
             const response = await fetch('/api/terra/initiate-widget', {
@@ -156,9 +164,11 @@ export const TerraDataViewerPage: React.FC = () => {
             setError('No active session ID found to generate archetype.');
             return;
         }
-        setIsGenerating(true);
-        setError(null);
+        setIsGeneratingArchetype(true);
+        setArchetypeError(null);
+        setImageError(null);
         setArchetypeResult(null);
+        setImageDataUrl(null);
         try {
             const response = await fetch('/api/archetype/generate', {
                 method: 'POST',
@@ -173,9 +183,44 @@ export const TerraDataViewerPage: React.FC = () => {
             setArchetypeResult(result);
         } catch (err: any) {
              console.error('Error generating archetype:', err);
-            setError(err.message || 'An unknown error occurred while generating the archetype.');
+            setArchetypeError(err.message || 'An unknown error occurred while generating the archetype.');
+            setError(null);
         } finally {
-            setIsGenerating(false);
+            setIsGeneratingArchetype(false);
+        }
+    };
+
+    const handleGenerateImage = async () => {
+        if (!archetypeResult?.imagePrompt) {
+            setImageError('Image prompt is missing from the archetype data. Cannot generate image.');
+            return;
+        }
+        setIsGeneratingImage(true);
+        setImageError(null);
+        setImageDataUrl(null);
+
+        try {
+            const response = await fetch('/api/archetype/generate-image', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ imagePrompt: archetypeResult.imagePrompt }),
+            });
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ message: 'Failed to parse image generation error' }));
+                throw new Error(errorData.error || `Image generation failed: ${response.status}`);
+            }
+            const responseBody = await response.json();
+            const fetchedUrl = responseBody.imageUrl;
+
+            if (!fetchedUrl) {
+                throw new Error('Image data URL not received from server (expected \'imageUrl\' field in response. Ensure backend sends { imageUrl: "..." }).');
+            }
+            setImageDataUrl(fetchedUrl);
+        } catch (err: any) {
+            console.error('Error generating image:', err);
+            setImageError(err.message || 'An unknown error occurred while generating the image.');
+        } finally {
+            setIsGeneratingImage(false);
         }
     };
 
@@ -199,22 +244,39 @@ export const TerraDataViewerPage: React.FC = () => {
                     </Button>
                 )}
 
-                {(isLoadingData || isGenerating) && (
+                {(isLoadingData || isGeneratingArchetype || isGeneratingImage) && (
                     <Box textAlign="center">
                         <Spinner size="xl" />
-                        <Text mt={2}>{isGenerating ? 'Generating Archetype...' : loadingMessage}</Text>
+                        <Text mt={2}>
+                            {isGeneratingImage ? 'Generating Image...' 
+                             : isGeneratingArchetype ? 'Generating Archetype...' 
+                             : loadingMessage}
+                        </Text>
                     </Box>
                 )}
 
                 {error && (
-                    <Alert status="error">
+                    <Alert status="error" mt={4}>
                         <AlertIcon />
                         {error}
                     </Alert>
                 )}
+                {archetypeError && (
+                    <Alert status="error" mt={4}>
+                        <AlertIcon />
+                        {archetypeError}
+                    </Alert>
+                )}
+                {imageError && (
+                    <Alert status="error" mt={4}>
+                        <AlertIcon />
+                        {imageError}
+                    </Alert>
+                )}
 
-                {dataReport && (
-                    <Accordion allowToggle defaultIndex={[0]}>
+                {/* Single Accordion for all collapsible content */}
+                <Accordion allowToggle defaultIndex={[]}>
+                    {dataReport && (
                         <AccordionItem>
                             <h2>
                                 <AccordionButton>
@@ -232,43 +294,83 @@ export const TerraDataViewerPage: React.FC = () => {
                                 </Box>
                             </AccordionPanel>
                         </AccordionItem>
-                    </Accordion>
-                )}
+                    )}
 
-                {dataReport && !archetypeResult && (
+                    {/* AI Health Archetype Section (Text) */}
+                    {archetypeResult && (
+                        <AccordionItem>
+                            <h2>
+                                <AccordionButton>
+                                    <Box flex="1" textAlign="left">
+                                        <Heading size="md">AI Health Archetype</Heading>
+                                    </Box>
+                                    <AccordionIcon />
+                                </AccordionButton>
+                            </h2>
+                            <AccordionPanel pb={4}>
+                                <VStack align="start" spacing={3}>
+                                    <Text><strong>Name:</strong> {archetypeResult.archetypeName}</Text>
+                                    <Text><strong>Description:</strong> {archetypeResult.archetypeDescription}</Text>
+                                    <Text><strong>Image Prompt:</strong> <Code>{archetypeResult.imagePrompt}</Code></Text>
+                                    <Text><strong>Sliders:</strong></Text>
+                                    <Box pl={4}>
+                                        {Object.entries(archetypeResult.sliderValues).map(([key, value]) => (
+                                            <Text key={key}>{key}: {value}</Text>
+                                        ))}
+                                    </Box>
+                                </VStack>
+                                {/* Display Image Generation Button if archetype is loaded, prompt exists, and no image yet */}
+                                {archetypeResult.imagePrompt && !imageDataUrl && !isGeneratingImage && (
+                                    <Button 
+                                        colorScheme="green" 
+                                        onClick={handleGenerateImage} 
+                                        isLoading={isGeneratingImage} 
+                                        loadingText="Generating Image..."
+                                        size="md"
+                                        mt={4}
+                                    >
+                                        Generate Archetype Image
+                                    </Button>
+                                )}
+                            </AccordionPanel>
+                        </AccordionItem>
+                    )}
+
+                    {/* Generated Archetype Image Section */}
+                    {imageDataUrl && !isGeneratingImage && archetypeResult && (
+                        <AccordionItem>
+                            <h2>
+                                <AccordionButton>
+                                    <Box flex="1" textAlign="left">
+                                        <Heading size="md">Generated Archetype Image</Heading>
+                                    </Box>
+                                    <AccordionIcon />
+                                </AccordionButton>
+                            </h2>
+                            <AccordionPanel pb={4} textAlign="center">
+                                <img 
+                                    src={imageDataUrl} 
+                                    alt={`${archetypeResult.archetypeName || 'Generated'} Archetype Avatar`} 
+                                    style={{ maxWidth: '100%', maxHeight: '512px', margin: 'auto', border: '1px solid #eee' }}
+                                />
+                            </AccordionPanel>
+                        </AccordionItem>
+                    )}
+                </Accordion>
+                
+                {/* Button to Generate Archetype - appears after data report is loaded and before archetype is generated */}
+                {dataReport && !archetypeResult && !isGeneratingArchetype && (
                     <Button 
                         colorScheme="purple" 
                         onClick={handleGenerateArchetype} 
-                        isLoading={isGenerating} 
-                        loadingText="Generating..."
+                        isLoading={isGeneratingArchetype} 
+                        loadingText="Generating Archetype..." // Updated loading text
                         size="lg"
                         alignSelf="center"
                         mt={4}
                     >
                         Generate Archetype
                     </Button>
-                )}
-
-                {archetypeResult && (
-                    <Accordion allowToggle defaultIndex={[0]}>
-                        <AccordionItem>
-                            <h2>
-                                <AccordionButton>
-                                    <Box flex="1" textAlign="left">
-                                        <Heading size="md">Generated Archetype (LLM Output)</Heading>
-                                    </Box>
-                                    <AccordionIcon />
-                                </AccordionButton>
-                            </h2>
-                            <AccordionPanel pb={4}>
-                                <Box borderWidth="1px" borderRadius="lg" p={4} overflowX="auto" bg="gray.50">
-                                    <Code as="pre" p={2} borderRadius="md" whiteSpace="pre-wrap" wordBreak="break-all">
-                                        {JSON.stringify(archetypeResult, null, 2)}
-                                    </Code>
-                                </Box>
-                            </AccordionPanel>
-                        </AccordionItem>
-                    </Accordion>
                 )}
 
                 {sessionIdFromUrl && !isLoadingData && !dataReport && !error && (

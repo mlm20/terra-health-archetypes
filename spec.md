@@ -70,7 +70,6 @@ Stepper shows live feedback through the following phases:
 - 🖼 **Low-poly AI-generated image** of the character
 - 🎚 **5 consistent health trait sliders**
 - 🧍 Optional name (entered by user)
-- 📤 CTA: "Copy My Archetype" → converts the card to PNG and copies to clipboard
 
 ---
 
@@ -103,7 +102,7 @@ These are the **same across all users** but each archetype reflects unique value
 
 ## 🤖 LLM Archetype Generation Prompt
 
-Used to generate name, description, image style, and sliders. The target LLM for this prompt is `gpt-4.1-mini`.
+Used to generate name, description, image style, and sliders. The target LLM for this prompt is `gpt-4.1-mini`. The LLM must return its output in a valid JSON format, conforming to the `LLMArchetypeResponse` interface (defined in `shared/constants.ts`).
 
 > SYSTEM PROMPT:
 
@@ -227,6 +226,8 @@ health-archetypes-demo/
 
 ## 📝 Implementation Notes & Considerations
 
+- **LLM Configuration File (`llm.config.ts`):** A configuration file (`llm.config.ts`) in the project root allows for easy specification of the LLM models (text and image) and their respective settings (e.g., DALL-E 3 size, quality, style). The `openaiService.ts` imports these configurations, making model changes manageable without direct code edits in the service. The file includes commented-out alternative model suggestions.
+
 - **Terra API Synchronous Data Fetching:** When fetching historical data using `to_webhook=false` (to get data directly in the API response), request shorter date ranges (e.g., **28 days or less**). Longer ranges may cause Terra to respond with a "Large request submitted" message, indicating asynchronous processing which cannot be handled without a publicly accessible webhook endpoint.
 - **Terra API Response Parsing:** The structure of JSON responses from Terra API endpoints (like `/daily`, `/sleep`, etc.) can vary. Ensure parsing logic (e.g., in the backend's `fetchTerraData` function) correctly handles potential nesting, typically looking for the data array within `response.data.data` or sometimes `response.data`, before defaulting to an empty array on error or unexpected structure.
 - **Vite Dev Server Proxy:** When running the React frontend (Vite) and Node.js backend locally on different ports, configure Vite's `server.proxy` in `vite.config.ts` to forward API requests (e.g., `/api/*`) from the frontend to the backend server's port (e.g., `http://localhost:3000`). Remember to restart the Vite dev server after modifying the config.
@@ -235,6 +236,18 @@ health-archetypes-demo/
 - **OpenAI Node.js Library:** The backend uses the official `openai` library (`npm install openai`) for interacting with OpenAI APIs (Chat Completions, Image Generation).
 - **Environment Variable Loading (`.env`):** Ensure `dotenv.config()` is called at the **very beginning** of `server/src/index.ts`, before any other modules are imported, especially those that initialize clients or services requiring environment variables (e.g., OpenAI client). If the `.env` file is in the project root, the path for the server (running from `server/`) should be `dotenv.config({ path: '../.env' });`. Incorrect loading order or path will lead to errors like missing API keys.
 - **TypeScript `unknown` Type Handling:** When fetching data from external APIs (e.g., Terra, OpenAI), the response is often typed as `unknown` after `response.json()`. To ensure type safety and prevent runtime errors, define appropriate TypeScript interfaces that model the expected API response structure. Use type assertion (e.g., `const jsonData = await response.json() as MyExpectedInterface;`) to inform TypeScript about the data's shape.
+- **OpenAI Image Generation (`dall-e-3`):** 
+    - The `dall-e-3` model is used for high-quality image generation. 
+    - **API Response & Format:** To receive base64-encoded image data (PNG format), `response_format: 'b64_json'` must be specified in the API call. The backend then converts this to a data URL (e.g., `data:image/png;base64,...`) for client-side use. If `response_format` is omitted or set to `'url'`, a temporary (1-hour expiry) URL is returned instead.
+    - **Parameters (for `dall-e-3`):**
+        - `model`: "dall-e-3"
+        - `prompt`: Text description (max 4000 characters).
+        - `size`: Supported sizes are `1024x1024`, `1792x1024`, or `1024x1792`. (Currently using `1024x1024`).
+        - `quality`: `hd` or `standard`. (Currently using `hd`).
+        - `style`: `vivid` (default) or `natural`.
+        - `n`: Number of images (only `n=1` is supported for `dall-e-3`).
+    - **Considerations:** Cost is higher than DALL·E 2. Prompt adherence is generally good.
+- **Separate Archetype and Image Endpoints:** To support a multi-stage UI (e.g., stepper), text archetype generation (`/api/archetype/generate`) and image generation (`/api/archetype/generate-image`) are separate backend endpoints. The frontend first calls the text endpoint, then uses the returned `imagePrompt` to call the image endpoint. This allows for independent loading and error states for each step.
 - **Port Conflict (EADDRINUSE):** If the backend server fails to start with an `EADDRINUSE` error (e.g., "address already in use :::3000"), it means another process is already using the designated port. Identify and stop the conflicting process (e.g., using `lsof -i :PORT` and `kill -9 PID` on macOS/Linux) before attempting to restart the server.
 
 ---
@@ -259,17 +272,22 @@ health-archetypes-demo/
 
 - [X] Create `/archetype` backend route
 - [X] Construct system prompt (move to `shared/constants.ts`)
-- [ ] Add OpenAI credentials to `.env`
-- [X] Implement OpenAI call with retries + error handling
-- [X] Return archetype name, description, image prompt, and sliders
-- [ ] Extend frontend test page (`TerraDataViewerPage`) to call archetype generation endpoint and display LLM response.
+- [X] Add OpenAI credentials to `.env` (OPENAI_API_KEY)
+- [X] Create a root-level configuration file (`llm.config.ts`) to specify text/image LLM models and their settings (e.g., DALL-E 3 quality, size, style); update services to use this config.
+- [X] Implement OpenAI call for text archetype generation with retries + error handling using configured model.
+- [X] Return archetype name, description, image prompt, and sliders from the text generation endpoint.
+- [X] Extend frontend test page (`TerraDataViewerPage.tsx`) to call archetype generation endpoint and display LLM response.
 
 ### 🖼 Image Generation Pipeline
 
-- [ ] Add backend call to OpenAI image endpoint with style prompt
-- [ ] Stream or cache result for frontend display
-- [ ] Normalize aspect ratio, resolution, and style
-- [ ] Handle loading/error states gracefully on client
+- [X] Create backend endpoint (`/api/archetype/generate-image`) that accepts an image prompt, calls OpenAI image API (using configured `dall-e-3` model and settings from `llm.config.ts`), and returns image data as a data URL.
+- [X] Frontend calls the text archetype generation endpoint (`/api/archetype/generate`) to get archetype details including the `imagePrompt`.
+- [X] Extend frontend test page (`TerraDataViewerPage.tsx`) to:
+    - [X] Call the `/api/archetype/generate-image` endpoint using the `imagePrompt`.
+    - [X] Display the generated image (from the data URL) in a new accordion section.
+    - [X] Handle loading and error states specifically for the image generation step.
+- [X] Normalize aspect ratio, resolution, and style (client-side display adjustments if needed, based on `1024x1024` image from `dall-e-3`).
+- [X] Consider image caching strategy for frontend if URLs were temporary (currently using data URLs which are self-contained).
 
 ### 🖼 Frontend Flow – Frame by Frame
 
@@ -293,20 +311,13 @@ health-archetypes-demo/
   - Image (OpenAI result)
   - Sliders with labels
   - Optional name input
-  - Copy/download button
 
 ### 🎨 Image + Export Tools
 
-- [ ] Implement `useImageExport()` custom hook
-- [ ] Add `Copy My Archetype` CTA → exports `ArchetypeCard` to PNG
-- [ ] Copy to clipboard or auto-download
-
-### 🧼 Ephemeral Data Strategy
-
-- [ ] Store user data in temporary memory object
-- [ ] Add `deleteSessionData()` after card render or timeout
-- [ ] Ensure no disk writes or API logging
-- [ ] Add console/session logging in dev mode only
+- [ ] Implement `useImageExport()` custom hook (e.g., using `html-to-image`) for converting a DOM node to an image.
+- [ ] Add a "Copy My Archetype" button/CTA to the `ArchetypeCard.tsx` component.
+- [ ] Implement the CTA functionality: use the `useImageExport` hook to export the `ArchetypeCard` content to a PNG image.
+- [ ] Implement copy-to-clipboard or auto-download for the generated PNG image.
 
 ### ✅ Polishing & Finishing Touches
 
@@ -314,5 +325,5 @@ health-archetypes-demo/
 - [ ] Add animation microinteractions (e.g. Framer Motion)
 - [ ] Add fallback illustrations or placeholders
 - [ ] Add favicon + site meta
-- [ ] Test offline behavior and session cleanups
 - [ ] Write concise README with local dev instructions
+

@@ -36,11 +36,6 @@ export interface LLMArchetypeResponse {
     archetypeName: string;
     archetypeDescription: string;
     imagePrompt: string;
-    sliderValues: {
-        recoveryReadiness: number;
-        activityLoad: number;
-        sleepStability: number;
-        heartRhythmBalance: number;
-        consistency: number;
-    };
+    sliderValues: Record<string, number>;
+    imageDataUrl?: string; // Optional: Will be added after image generation (Data URL)
 } 
