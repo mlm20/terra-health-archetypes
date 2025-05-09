@@ -233,6 +233,59 @@ export const ArchetypeFlowPage: React.FC = () => {
                       : isGeneratingImage ? 'Generating Image...'
                       : 'Processing...';
 
+    // Helper function to render main content based on state
+    const renderMainContent = () => {
+        if (flowError) {
+            return (
+                <Alert status="error" borderRadius="md">
+                    <AlertIcon />
+                    <Text>{flowError}</Text>
+                </Alert>
+            );
+        }
+
+        if (isLoading) {
+            return (
+                <Box textAlign="center" p={10}>
+                    <Spinner size="xl" />
+                    <Heading size="md" mt={4}>{loadingText}</Heading>
+                </Box>
+            );
+        }
+
+        if (archetypeData && imageDataUrl) {
+            return (
+                <ArchetypeCard 
+                    archetypeName={archetypeData.archetypeName}
+                    archetypeDescription={archetypeData.archetypeDescription}
+                    imageDataUrl={imageDataUrl}
+                    sliderValues={archetypeData.sliderValues}
+                />
+            );
+        }
+
+        // Message for steps before archetype is ready
+        if (activeStep < STEP_ARCHETYPE_DISCOVERED) {
+            return (
+                 <Box textAlign="center" p={10}>
+                     <Text fontSize="lg" color="gray.500">Waiting for the next step...</Text>
+                 </Box>
+            );
+        }
+
+        // Message for completion if archetype somehow didn't load but flow finished
+        if (activeStep === STEP_DATA_CLEARED) {
+            return (
+                <Box textAlign="center" p={10}>
+                    <Heading size="md">Process Complete</Heading>
+                    <Text>Your Health Archetype journey is finished. If you don't see your card, an unexpected issue might have occurred.</Text>
+                </Box>
+            );
+        }
+        
+        return null; // Fallback, should ideally not be reached if logic is correct
+    };
+
     return (
         <Flex direction="column" minH="100vh" bg={bgColor}>
             <Navbar />
@@ -241,52 +294,26 @@ export const ArchetypeFlowPage: React.FC = () => {
                 py={{ base: 6, md: 12 }}
                 flex={1} 
                 display="flex"
-                alignItems="center"
+                alignItems={{ base: 'flex-start', md: 'center' }} // Align items to start on mobile for better layout with stepper
             >
                 <Grid 
                     templateColumns={{ base: "1fr", md: "auto 1fr" }}
                     gap={{ base: 6, md: 10 }}
                     w="full"
-                    alignItems="start"
+                    alignItems="start" // Keep consistent alignment for GridItems
                 >
                     <GridItem 
-                        w={{ base: "full", md: "280px" }}
-                        position={{ md: 'sticky' }}
-                        top={{ md: '100px' }}
-                    > 
-                        <Heading size="lg" mb={6} textAlign={{ base: "center", md: "left" }}>Progress</Heading>
+                        position={{ base: 'relative', md: 'sticky' }} 
+                        top={{ md: '6rem' }} // Adjust based on Navbar height if necessary
+                        alignSelf="start"
+                        w={{ base: 'full', md: 'xs' }} // Full width on mobile, fixed on desktop
+                    >
                         <ProgressStepper activeStep={activeStep} />
                     </GridItem>
 
-                    <GridItem w="full">
-                        <VStack spacing={6} align="stretch" minH="300px" justify="center">
-                            {isLoading ? (
-                                <VStack pt={8} justify="center" flex={1}>
-                                    <Spinner size="xl" color="teal.500" thickness="4px" />
-                                    <Text fontSize="lg" color={useColorModeValue('gray.600', 'gray.400')}>{loadingText}</Text>
-                                </VStack>
-                            ) : flowError ? (
-                                <Alert status="error" borderRadius="md" variant="subtle" w="full">
-                                    <AlertIcon />
-                                    {flowError}
-                                </Alert>
-                            ) : activeStep === STEP_DATA_CLEARED ? (
-                                <Alert status="success" borderRadius="md" variant="subtle" w="full">
-                                    <AlertIcon />
-                                    Processing complete and session data cleared.
-                                </Alert>
-                            ) : activeStep >= STEP_ARCHETYPE_DISCOVERED && archetypeData ? (
-                                <Box w="full" display="flex" justifyContent={{ base: "center", md: "start" }}>
-                                    <ArchetypeCard 
-                                        archetypeName={archetypeData.archetypeName}
-                                        archetypeDescription={archetypeData.archetypeDescription}
-                                        imageDataUrl={imageDataUrl} 
-                                        sliderValues={archetypeData.sliderValues}
-                                    />
-                                </Box>
-                            ) : (
-                                <Text color="gray.500">Processing...</Text> 
-                            )}
+                    <GridItem>
+                        <VStack spacing={6} w="full" minH={{ base: "300px", md: "auto"}}> {/* Ensure GridItem has content or minH */}
+                            {renderMainContent()}
                         </VStack>
                     </GridItem>
                 </Grid>

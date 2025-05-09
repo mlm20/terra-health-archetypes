@@ -320,8 +320,7 @@ health-archetypes-demo/
 
 ### ✅ Polishing & Finishing Touches
 
-- [ ] Validate all inputs and UI states
-- [ ] Add animation microinteractions (e.g. Framer Motion)
+- [X] Validate all inputs and UI states
 - [X] Add favicon + site meta
-- [ ] Write concise README with local dev instructions
+- [X] Write concise README with local dev instructions
 
