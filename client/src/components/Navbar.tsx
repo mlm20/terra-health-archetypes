@@ -20,18 +20,16 @@ export const Navbar: React.FC = () => {
             as="nav" 
             w="full" 
             py={3}
-            px={{ base: 4, md: 8 }}
             boxShadow="sm"
             bg={navBg}
             position="sticky" // Make navbar sticky
             top={0}
             zIndex="sticky" // Ensure it stays above other content
         >
-            <Flex align="center" maxW="container.xl" mx="auto">
+            <Flex align="center" justify="space-between" px={{ base: 6, md: 10 }}> {/* Add responsive horizontal padding to align with main content */}
                 <Heading size="md" bgGradient="linear(to-r, teal.400, blue.500)" bgClip="text">
                     🧬 Health Archetypes
                 </Heading>
-                <Spacer />
                 <IconButton
                     size="md"
                     fontSize="lg"

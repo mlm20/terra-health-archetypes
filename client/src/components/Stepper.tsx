@@ -9,7 +9,12 @@ import {
   StepDescription,
   StepSeparator,
   useColorModeValue,
+  Icon,
+  Spinner,
+  Circle,
+  Text
 } from '@chakra-ui/react';
+import { CheckIcon, WarningIcon } from '@chakra-ui/icons';
 
 const steps = [
   { title: 'Device Connected', description: 'Wearable linked' },
@@ -18,45 +23,93 @@ const steps = [
   { title: 'Data Cleared', description: 'Session wiped' },
 ];
 
+export type StepStatusType = 'idle' | 'ongoing' | 'complete' | 'error';
+
 interface ProgressStepperProps {
-  activeStep: number; // 0-based index
+  stepStatuses: StepStatusType[];
 }
 
-export const ProgressStepper: React.FC<ProgressStepperProps> = ({ activeStep }) => {
-  // Adjust activeStep to be 1-based for useSteps hook if needed, 
-  // or keep 0-based and use directly. Chakra examples often use 1-based.
-  // Let's use the 0-based prop directly and adjust comparisons.
-  const actualActiveStep = activeStep; // Use the 0-based prop
+export const ProgressStepper: React.FC<ProgressStepperProps> = ({ stepStatuses }) => {
+  const activeStepIndex = stepStatuses.findIndex(status => status === 'ongoing');
 
-  const activeStepTextColor = useColorModeValue("gray.700", "gray.200");
-  const inactiveStepTextColor = useColorModeValue("gray.500", "gray.500");
+  const completedColor = useColorModeValue('teal.500', 'teal.300');
+  const ongoingColor = useColorModeValue('teal.500', 'teal.300');
+  const errorColor = useColorModeValue('red.500', 'red.300');
+  const pendingColor = useColorModeValue('gray.400', 'gray.600');
+
+  const titleColorCompleted = useColorModeValue('gray.800', 'gray.100');
+  const titleColorActive = useColorModeValue('gray.800', 'gray.100');
+  const titleColorPending = useColorModeValue('gray.600', 'gray.400');
+
+  const descriptionColor = useColorModeValue('gray.600', 'gray.400');
 
   return (
-    <Stepper index={actualActiveStep} colorScheme="teal" orientation="vertical" height={`${steps.length * 70}px`} gap="0">
-      {steps.map((step, index) => (
-        <Step key={index}>
-          <StepIndicator>
-            <StepStatus
-              complete={`✅`}
-              incomplete={`⏳`}
-              active={`⏳`}
-            />
-          </StepIndicator>
+    <Stepper index={activeStepIndex} orientation="vertical" height={`${steps.length * 70}px`} gap="0">
+      {steps.map((step, index) => {
+        const status = stepStatuses[index];
+        const isCompleted = status === 'complete';
+        const isOngoing = status === 'ongoing';
+        const isError = status === 'error';
+        const isPending = status === 'idle';
 
-          <Box flexShrink="0" ml={3}>
-            <StepTitle style={{ fontWeight: actualActiveStep === index ? 'bold' : 'normal', color: actualActiveStep === index ? activeStepTextColor : inactiveStepTextColor }}>
-              {step.title}
-            </StepTitle>
-            <StepDescription style={{ color: inactiveStepTextColor }}>
-              {step.description}
-            </StepDescription>
-          </Box>
+        const separatorColor = (index < steps.length - 1 && stepStatuses[index] === 'complete') ? completedColor : pendingColor;
 
-          <StepSeparator />
-        </Step>
-      ))}
+        return (
+          <Step key={index}>
+            <StepIndicator>
+              <StepStatus
+                complete={
+                  <Circle size='6' bg={completedColor} color='white'>
+                    <Icon as={CheckIcon} boxSize='3' />
+                  </Circle>
+                }
+                incomplete={
+                  isError ? (
+                    <Icon as={WarningIcon} color={errorColor} boxSize='6' />
+                  ) : (
+                    <Circle size='6' borderWidth='2px' borderColor={pendingColor} bg='transparent'>
+                    </Circle>
+                  )
+                }
+                active={
+                  isOngoing ? (
+                    <Spinner size="sm" color={ongoingColor} />
+                  ) : isError ? (
+                     <Icon as={WarningIcon} color={errorColor} boxSize='6' />
+                  ) : isCompleted ? (
+                    <Circle size='6' bg={completedColor} color='white'>
+                      <Icon as={CheckIcon} boxSize='3' />
+                    </Circle>
+                  ) : (
+                    <Circle size='6' borderWidth='2px' borderColor={pendingColor} bg='transparent'>
+                    </Circle>
+                  )
+                }
+              />
+            </StepIndicator>
+
+            <Box flexShrink="0" ml={3}>
+              <StepTitle>
+                 <Text
+                     color={isCompleted ? titleColorCompleted : isOngoing ? titleColorActive : titleColorPending}
+                     fontWeight={isOngoing ? 'bold' : isCompleted ? 'bold' : 'normal'}
+                 >
+                    {step.title}
+                 </Text>
+              </StepTitle>
+              <StepDescription>
+                 <Text color={descriptionColor} fontWeight="normal">
+                    {step.description}
+                 </Text>
+              </StepDescription>
+            </Box>
+
+             <StepSeparator />
+          </Step>
+        );
+      })}
     </Stepper>
   );
 };
 
-export default ProgressStepper; 
+export default ProgressStepper;
