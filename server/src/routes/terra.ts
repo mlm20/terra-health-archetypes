@@ -1,6 +1,5 @@
 import express, { Request, Response } from 'express';
 import { randomUUID } from 'crypto';
-import fetch from 'node-fetch'; // Or use global fetch if your Node version supports it natively (18+)
 
 import { initializeSession, storeTerraUserId, getTerraUserId } from '../utils/sessionManager';
 import { getUserHealthData, packageHealthDataForLLM, TerraHealthData } from '../services/terraService';
@@ -43,7 +42,7 @@ router.post('/initiate-widget', async (req: Request, res: Response): Promise<voi
 
         console.log('Calling Terra generateWidgetSession with body:', terraApiBody);
 
-        const terraResponse = await fetch(TERRA_API_WIDGET_URL, {
+        const terraResponse = await (await import('node-fetch')).default(TERRA_API_WIDGET_URL, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

@@ -2,8 +2,6 @@ import React, { useEffect, useState, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
     Box,
-    Container,
-    Heading,
     Text,
     Spinner,
     Alert,
@@ -11,8 +9,6 @@ import {
     VStack,
     useColorModeValue,
     Flex,
-    Grid,
-    GridItem,
     useBreakpointValue,
 } from "@chakra-ui/react";
 import ProgressStepper, { type StepStatusType } from "../components/Stepper"; // Import the stepper component and StepStatusType as type
@@ -67,8 +63,6 @@ export const ArchetypeFlowPage: React.FC = () => {
 
     // State for errors
     const [flowError, setFlowError] = useState<string | null>(null); // General error for the flow
-
-    const bgColor = useColorModeValue("gray.50", "gray.800");
 
     // Derive step statuses based on current state
     const stepStatuses: StepStatusType[] = useMemo(() => {
