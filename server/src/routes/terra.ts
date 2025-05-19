@@ -6,7 +6,10 @@ import { getUserHealthData, packageHealthDataForLLM, TerraHealthData } from '../
 
 const router = express.Router();
 const TERRA_API_WIDGET_URL = 'https://api.tryterra.co/v2/auth/generateWidgetSession';
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173'; // For redirect URLs
+
+// Use environment variable with appropriate fallback for production
+const FRONTEND_URL = process.env.FRONTEND_URL || 
+  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:5173');
 
 // Interface for the expected Terra API response
 interface TerraWidgetSessionResponse {

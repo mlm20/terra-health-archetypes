@@ -3,7 +3,7 @@ import OpenAI from 'openai';
 import { getTerraUserId } from '../utils/sessionManager';
 import { getUserHealthData, packageHealthDataForLLM, LLMReadyHealthReport, TerraHealthData } from '../services/terraService';
 import { generateArchetypeFromHealthData, generateArchetypeImage } from '../services/openaiService';
-import { LLM_ARCHETYPE_SYSTEM_PROMPT, LLMArchetypeResponse } from '@shared/constants';
+import { LLM_ARCHETYPE_SYSTEM_PROMPT, LLMArchetypeResponse } from "../../../shared/constants";
 
 const router = express.Router();
 
