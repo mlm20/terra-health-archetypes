@@ -8,7 +8,6 @@ import {
   StepTitle,
   StepDescription,
   StepSeparator,
-  useSteps,
   useColorModeValue,
 } from '@chakra-ui/react';
 

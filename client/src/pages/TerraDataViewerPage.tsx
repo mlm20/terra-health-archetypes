@@ -16,7 +16,6 @@ import {
     AccordionButton,
     AccordionPanel,
     AccordionIcon,
-    Divider,
     Flex,
 } from '@chakra-ui/react';
 import Navbar from '../components/Navbar';

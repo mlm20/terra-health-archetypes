@@ -311,7 +311,7 @@ health-archetypes-demo/
   - [X] Image (OpenAI result)
   - [X] Sliders with labels
 
-### 🎨 Image + Export Tools
+#### Image + Export Tools
 
 - [X] Implement `useImageExport()` custom hook (e.g., using `html-to-image`) for converting a DOM node to an image.
 - [X] Add a "Copy My Archetype" button/CTA to the `ArchetypeCard.tsx` component.

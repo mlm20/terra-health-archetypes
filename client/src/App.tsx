@@ -1,4 +1,3 @@
-import { ChakraProvider, Container, Heading, Text, VStack, List, ListItem, Code, Divider, Box, Button } from '@chakra-ui/react';
 import { Routes, Route } from 'react-router-dom';
 import { TerraDataViewerPage } from './pages/TerraDataViewerPage'; // Ensure this path is correct
 import LandingPage from './pages/LandingPage'; // Import the new LandingPage
