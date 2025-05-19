@@ -3,8 +3,8 @@ import {
     LLM_ARCHETYPE_SYSTEM_PROMPT,
     LLMArchetypeResponse,
     LLM_USER_PROMPT,
-    LLM_EXAMPLE_ONE,
-    LLM_EXAMPLE_TWO
+    // LLM_EXAMPLE_ONE,
+    // LLM_EXAMPLE_TWO
 } from "../../../shared/constants"; // Use path mapping
 import { LLMReadyHealthReport } from "./terraService"; // Assuming this relative path is okay within services
 // Import model configurations from root config file
@@ -49,8 +49,8 @@ export async function generateArchetypeFromHealthData(
     const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
         { role: "system", content: LLM_ARCHETYPE_SYSTEM_PROMPT },
         { role: "user", content: LLM_USER_PROMPT(healthReport.timePeriodDays, healthReportJsonString) },
-        { role: "assistant", content: JSON.stringify(LLM_EXAMPLE_ONE) },
-        { role: "assistant", content: JSON.stringify(LLM_EXAMPLE_TWO) },
+        // { role: "assistant", content: JSON.stringify(LLM_EXAMPLE_ONE) },
+        // { role: "assistant", content: JSON.stringify(LLM_EXAMPLE_TWO) },
     ];
 
     let attempts = 0;

@@ -12,14 +12,13 @@ Return a single JSON object with the following structure. **Strictly return JSON
 
 - "archetypeDescription" (1–2 sentences): A short, emotionally engaging description of the archetype's personality, strengths, and journey. Use metaphor and myth, not medical terms.
 
-- "imagePrompt" (string): A detailed visual description of the character as a stylized digital avatar. Your prompt must include:
+- "imagePrompt" (string): A highly specific visual description of the character as a stylized digital avatar. Your prompt must include:
   - The avatar’s **pose**, **expression**, and **outfit** (to show personality).
-  - **Symbolic props** that reflect the user’s health state (e.g. pulsing lantern, cracked hourglass, floating trail map, dream crystal).
-  - A **symbolic, emotionally charged environment** (e.g. misty zen dojo, cosmic rest temple, jungle circuit path).
-  - Style should be **stylized fantasy, animated, or spiritual-sci-fi** — not photorealistic.
-  - Emphasize storytelling — make it feel like a *moment from their journey*.
-  - Avoid generic neon/futuristic bodies unless meaningfully tied to the health story.
-  - Never use brand names, logos, or real-world items.
+  - At least **one symbolic prop** related to health (e.g. flickering lantern, cracked compass, glowing hourglass, rhythmic orb).
+  - A **symbolic, emotionally charged environment** (e.g. cosmic forest, underwater meditation cave, ritual canyon).
+  - The tone should feel **softly lit, textured, emotionally expressive**, and visually poetic — not slick, synthetic, or overly cyberpunk.
+  - Style: **low-poly fantasy, painted animation, stylized spiritual-sci-fi** — avoid photorealism or generic neon tech unless grounded in metaphor.
+  - Imagine this as a still from an indie fantasy film or mystical RPG.
 
 - "sliderValues": Object with the following keys (each an integer from 0–100):
   - "recoveryReadiness"
@@ -48,8 +47,7 @@ Here is the expected format (only the JSON):
     "heartRhythmBalance": 75,
     "consistency": 65
   }
-}
-`;
+}`;
 
 // Potentially add other shared constants here later, like slider names if needed separately.
 export const HEALTH_SLIDER_NAMES = [
@@ -80,7 +78,6 @@ export const LLM_USER_PROMPT = (
 
     Be creative, kind, a bit cheeky, and emotionally engaging.
 
-
     \`\`\`json
     ${healthReportJsonString}
     \`\`\`
@@ -88,33 +85,33 @@ export const LLM_USER_PROMPT = (
     Return the archetype STRICTLY as a JSON object in the format described in the system prompt — no extra text, markdown, or comments.
 `;
 
-// Example response structures
-export const LLM_EXAMPLE_ONE = {
-    archetypeName: "The Ember Monk",
-    archetypeDescription:
-        "A fierce yet centered force who burns with controlled fire. Their balance comes from knowing when to spark action and when to sit in the coals.",
-    imagePrompt:
-        "A seated figure in glowing red-orange robes, eyes closed in deep focus. Their body crackles with ember-like energy at the joints and chest. Floating around them are small flickering lanterns representing their past activities. The background is a volcanic temple carved into a mountainside — warm, smoky, serene. Their posture is grounded, strong, but radiating internal heat.",
-    sliderValues: {
-        recoveryReadiness: 45,
-        activityLoad: 85,
-        sleepStability: 62,
-        heartRhythmBalance: 58,
-        consistency: 68,
-    },
-};
+// // Example response structures
+// export const LLM_EXAMPLE_ONE = {
+//     archetypeName: "The Ember Monk",
+//     archetypeDescription:
+//         "A fierce yet centered force who burns with controlled fire. Their balance comes from knowing when to spark action and when to sit in the coals.",
+//     imagePrompt:
+//         "A seated figure in glowing red-orange robes, eyes closed in deep focus. Their body crackles with ember-like energy at the joints and chest. Floating around them are small flickering lanterns representing their past activities. The background is a volcanic temple carved into a mountainside — warm, smoky, serene. Their posture is grounded, strong, but radiating internal heat.",
+//     sliderValues: {
+//         recoveryReadiness: 45,
+//         activityLoad: 85,
+//         sleepStability: 62,
+//         heartRhythmBalance: 58,
+//         consistency: 68,
+//     },
+// };
 
-export const LLM_EXAMPLE_TWO = {
-    archetypeName: "The Still Grove",
-    archetypeDescription:
-        "Rooted, calm, and quietly powerful — this archetype recharges in deep rhythms and breathes with the forest. Their strength lies in stillness and ritual.",
-    imagePrompt:
-        "A serene figure in moss-colored robes, seated on a glowing stone surrounded by softly swaying trees. Their hands hover over a pulsating orb of light that floats above a bed of leaves. The environment is a dreamy forest temple with shafts of golden light and soft particle effects. Their expression is one of deep, knowing peace.",
-    sliderValues: {
-        recoveryReadiness: 82,
-        activityLoad: 34,
-        sleepStability: 91,
-        heartRhythmBalance: 78,
-        consistency: 85,
-    },
-};
+// export const LLM_EXAMPLE_TWO = {
+//     archetypeName: "The Still Grove",
+//     archetypeDescription:
+//         "Rooted, calm, and quietly powerful — this archetype recharges in deep rhythms and breathes with the forest. Their strength lies in stillness and ritual.",
+//     imagePrompt:
+//         "A serene figure in moss-colored robes, seated on a glowing stone surrounded by softly swaying trees. Their hands hover over a pulsating orb of light that floats above a bed of leaves. The environment is a dreamy forest temple with shafts of golden light and soft particle effects. Their expression is one of deep, knowing peace.",
+//     sliderValues: {
+//         recoveryReadiness: 82,
+//         activityLoad: 34,
+//         sleepStability: 91,
+//         heartRhythmBalance: 78,
+//         consistency: 85,
+//     },
+// };

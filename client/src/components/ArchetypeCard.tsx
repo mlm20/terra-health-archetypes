@@ -64,7 +64,7 @@ export const ArchetypeCard: React.FC<ArchetypeCardProps> = ({
             <VStack spacing={5} align="stretch">
                 {/* Image/Avatar Section */}
                 <Box 
-                    h="200px" // Fixed height for the image area
+                    w="full" // Make the container fill the available width
                     bg={useColorModeValue('gray.100', 'gray.700')} 
                     borderRadius="lg" 
                     display="flex" 
@@ -76,9 +76,9 @@ export const ArchetypeCard: React.FC<ArchetypeCardProps> = ({
                         <Image 
                             src={imageDataUrl} 
                             alt={`${archetypeName} Avatar`} 
-                            objectFit="cover" // Use cover to fill the box nicely
-                            w="full"
-                            h="full"
+                            objectFit="cover" // Use cover. With a 1:1 image and w="full", this will fill the dynamic square container.
+                            w="full" // Ensure image takes full width of its container
+                            h="auto" // Allow height to adjust based on aspect ratio
                         />
                     ) : (
                         <Text color="gray.500">No Image Available</Text>
@@ -134,7 +134,7 @@ export const ArchetypeCard: React.FC<ArchetypeCardProps> = ({
                         loadingText="Generating Image..."
                         w="full"
                     >
-                        Copy My Archetype (Download PNG)
+                        Download
                     </Button>
                 </VStack>
             </VStack>
