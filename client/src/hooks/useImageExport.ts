@@ -31,12 +31,38 @@ export const useImageExport = (elementRef: RefObject<HTMLElement>): UseImageExpo
         console.log('Image Export: Starting export...');
 
         try {
+            // Wait for all images to load before capturing
+            const images = elementRef.current.getElementsByTagName('img');
+            await Promise.all(
+                Array.from(images).map(
+                    (img) =>
+                        new Promise((resolve, reject) => {
+                            if (img.complete) {
+                                resolve(null);
+                            } else {
+                                img.onload = () => resolve(null);
+                                img.onerror = () => reject(new Error(`Failed to load image: ${img.src}`));
+                            }
+                        })
+                )
+            );
+
+            // Add a small delay to ensure all images are fully rendered
+            await new Promise(resolve => setTimeout(resolve, 100));
+
             // Use html-to-image to convert the referenced element to a PNG data URL
             const dataUrl = await toPng(elementRef.current, { 
                 cacheBust: true, // Avoid using cached images for fresh render
-                // You can adjust quality, pixelRatio etc. here if needed
-                // quality: 0.95, 
-                // backgroundColor: 'white', // Optional: specify background for transparent elements
+                pixelRatio: 2, // Increase resolution for better quality
+                skipAutoScale: true, // Prevent automatic scaling which might affect image quality
+                imagePlaceholder: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=', // Transparent placeholder
+                style: {
+                    transform: 'none', // Prevent any transform issues
+                },
+                filter: (node) => {
+                    // Ensure images are included in the export
+                    return node.tagName !== 'SCRIPT' && node.tagName !== 'STYLE';
+                }
             });
             console.log('Image Export: PNG Data URL generated.');
 
@@ -58,4 +84,4 @@ export const useImageExport = (elementRef: RefObject<HTMLElement>): UseImageExpo
     }, [elementRef]); // Dependency array includes the ref
 
     return { exportToPng, isExporting, error };
-}; 
+};
