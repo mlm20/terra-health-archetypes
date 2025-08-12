@@ -1,6 +1,6 @@
 # 🧬 Health Archetypes – Local Demo Spec (LLM + Image Gen Edition)
 
-A fast, privacy-first, no-login web demo where users connect their wearable, get a one-of-a-kind **Health Archetype**, and copy a beautifully generated card to share with friends.
+A fast, privacy-first, no-login web demo where users can get a one-of-a-kind **Health Archetype**, and copy a beautifully generated card to share with friends.
 
 ---
 
@@ -12,10 +12,9 @@ A fast, privacy-first, no-login web demo where users connect their wearable, get
 
 **Core experience:**
 
-1. User connects their wearable (via Terra)
-2. AI analyzes their health data
-3. A custom archetype + avatar is generated
-4. Data is deleted — session-based only, no tracking
+1. AI analyzes health data (mocked for now)
+2. A custom archetype + avatar is generated
+3. Data is deleted — session-based only, no tracking
 
 ---
 
@@ -45,7 +44,7 @@ A fast, privacy-first, no-login web demo where users connect their wearable, get
   - Just one personalized profile
   - Everything is local and deleted after
 
-- 🟢 CTA: "Connect Your Wearable" (launches Terra Widget)
+- 🟢 CTA: "Start"
 
 ---
 
@@ -55,10 +54,9 @@ Stepper shows live feedback through the following phases:
 
 | Step | Label                | Copy                                                   |
 | ---- | -------------------- | ------------------------------------------------------ |
-| 1    | Device Connected     | "Wearable linked — syncing your data flow 🛰️"          |
-| 2    | Health Data Obtained | "Cracking open your past workouts, sleep, and vitals…" |
-| 3    | Archetype Discovered | "Channeling your energy into a one-of-a-kind vibe… 🧘‍♂️" |
-| 4    | Data Cleared         | "Data deleted. Nothing saved. You're all set 🧼"       |
+| 1    | Health Data Obtained | "Cracking open your past workouts, sleep, and vitals…" |
+| 2    | Archetype Discovered | "Channeling your energy into a one-of-a-kind vibe… 🧘‍♂️" |
+| 3    | Data Cleared         | "Data deleted. Nothing saved. You're all set 🧼"       |
 
 ---
 
@@ -153,7 +151,6 @@ Style references: Symbolic, expressive, vibrant low-poly avatars. No logos or br
 | Node.js (Express) | Hosts API endpoints locally      |
 | OpenAI API        | LLM + image generation           |
 | In-memory JSON    | Holds session data (no database) |
-| Terra API         | Pulls user health metrics        |
 
 ### Data Handling
 
@@ -163,19 +160,7 @@ Style references: Symbolic, expressive, vibrant low-poly avatars. No logos or br
 
 ---
 
-## 🧪 Terra Data Strategy
 
-Use Terra's standard normalized health metrics from:
-
-- `/daily`: sleep, heart rate, activity levels
-- `/activity`: workouts, intensity
-- `/sleep`: detailed sleep trends
-- `/body`: body comp if available
-- Fetch 30–90 days of data
-
-> You only need enough data to extract a stable health profile. No deep historical processing needed.
-
----
 
 ## 🔒 Privacy & Data Ephemerality
 
@@ -193,22 +178,9 @@ This is the recommended layout for organizing the local full-stack app:
 ```
 health-archetypes-demo/
 │
-├── client/                     # Frontend (React + Chakra UI)
-│   ├── public/                 # Static assets (favicons, index.html)
-│   ├── src/
-│   │   ├── assets/             # Images, icons, fonts
-│   │   ├── components/         # Reusable UI components (e.g. SliderCard, Stepper)
-│   │   ├── pages/              # Top-level views (LandingPage, ArchetypePage)
-│   │   ├── hooks/              # Custom React hooks (e.g. useTerraConnect, useStepper)
-│   │   ├── utils/              # Frontend utilities (e.g. formatter, imageExport)
-│   │   ├── theme/              # Chakra UI theme extensions
-│   │   ├── App.tsx
-│   │   └── main.tsx
-│   └── vite.config.ts
-│
-├── server/                     # Backend (Node.js + Express)
-│   ├── routes/                 # API route handlers (e.g. /archetype, /terra)
-│   ├── services/               # LLM, image gen, and Terra data handlers
+│   │   ├── hooks/              # Custom React hooks (e.g. useStepper)
+│   ├── routes/                 # API route handlers (e.g. /archetype)
+│   ├── services/               # LLM, image gen handlers
 │   ├── utils/                  # Shared helpers (e.g. sessionManager, dataParser)
 │   ├── index.ts                # Express app entry point
 │   └── types.ts                # Shared TypeScript types (for LLM prompt, etc.)
@@ -216,7 +188,7 @@ health-archetypes-demo/
 ├── shared/                     # Common code (shared between client/server if needed)
 │   └── constants.ts            # Shared enums, prompt strings, slider names
 │
-├── .env                        # API keys (OpenAI, Terra) – local only
+├── .env                        # API keys (OpenAI) – local only
 ├── package.json                # Root-level dependencies and scripts
 ├── tsconfig.json               # TypeScript config
 └── README.md                   # Project setup and run instructions
@@ -228,14 +200,11 @@ health-archetypes-demo/
 
 - **LLM Configuration File (`llm.config.ts`):** A configuration file (`llm.config.ts`) in the project root allows for easy specification of the LLM models (text and image) and their respective settings (e.g., DALL-E 3 size, quality, style). The `openaiService.ts` imports these configurations, making model changes manageable without direct code edits in the service. The file includes commented-out alternative model suggestions.
 
-- **Terra API Synchronous Data Fetching:** When fetching historical data using `to_webhook=false` (to get data directly in the API response), request shorter date ranges (e.g., **28 days or less**). Longer ranges may cause Terra to respond with a "Large request submitted" message, indicating asynchronous processing which cannot be handled without a publicly accessible webhook endpoint.
-- **Terra API Response Parsing:** The structure of JSON responses from Terra API endpoints (like `/daily`, `/sleep`, etc.) can vary. Ensure parsing logic (e.g., in the backend's `fetchTerraData` function) correctly handles potential nesting, typically looking for the data array within `response.data.data` or sometimes `response.data`, before defaulting to an empty array on error or unexpected structure.
 - **Vite Dev Server Proxy:** When running the React frontend (Vite) and Node.js backend locally on different ports, configure Vite's `server.proxy` in `vite.config.ts` to forward API requests (e.g., `/api/*`) from the frontend to the backend server's port (e.g., `http://localhost:3000`). Remember to restart the Vite dev server after modifying the config.
-- **Local Authentication Flow (No Webhooks):** The current simplified setup avoids external webhooks by having the frontend extract `user_id` from Terra's redirect URL and send it to a dedicated backend endpoint (`/api/terra/confirm-auth`) to associate it with the session ID. This relies on Terra consistently providing `user_id` in the success redirect parameters.
 - **OpenAI API Key and Credits:** An OpenAI API key must be obtained from [platform.openai.com](https://platform.openai.com/) and added to the `.env` file as `OPENAI_API_KEY`. Ensure the associated OpenAI account has sufficient credits or a payment method set up, as both text and image generation API calls incur costs.
 - **OpenAI Node.js Library:** The backend uses the official `openai` library (`npm install openai`) for interacting with OpenAI APIs (Chat Completions, Image Generation).
 - **Environment Variable Loading (`.env`):** Ensure `dotenv.config()` is called at the **very beginning** of `server/src/index.ts`, before any other modules are imported, especially those that initialize clients or services requiring environment variables (e.g., OpenAI client). If the `.env` file is in the project root, the path for the server (running from `server/`) should be `dotenv.config({ path: '../.env' });`. Incorrect loading order or path will lead to errors like missing API keys.
-- **TypeScript `unknown` Type Handling:** When fetching data from external APIs (e.g., Terra, OpenAI), the response is often typed as `unknown` after `response.json()`. To ensure type safety and prevent runtime errors, define appropriate TypeScript interfaces that model the expected API response structure. Use type assertion (e.g., `const jsonData = await response.json() as MyExpectedInterface;`) to inform TypeScript about the data's shape.
+- **TypeScript `unknown` Type Handling:** When fetching data from external APIs (e.g., OpenAI), the response is often typed as `unknown` after `response.json()`. To ensure type safety and prevent runtime errors, define appropriate TypeScript interfaces that model the expected API response structure. Use type assertion (e.g., `const jsonData = await response.json() as MyExpectedInterface;`) to inform TypeScript about the data's shape.
 - **OpenAI Image Generation (`dall-e-3`):** 
     - The `dall-e-3` model is used for high-quality image generation. 
     - **API Response & Format:** To receive base64-encoded image data (PNG format), `response_format: 'b64_json'` must be specified in the API call. The backend then converts this to a data URL (e.g., `data:image/png;base64,...`) for client-side use. If `response_format` is omitted or set to `'url'`, a temporary (1-hour expiry) URL is returned instead.
@@ -254,20 +223,6 @@ health-archetypes-demo/
 
 ## ✅ MVP Milestones
 
-### 📊 Terra Data Handling
-
-- [X] Add API credentials to `.env` (Terra DEV_ID, API_KEY)
-- [X] Implement backend logic for a local Terra widget authentication flow (no webhooks), including:
-    - Session ID generation and management for the widget interaction.
-    - Secure server-side call to Terra to obtain the widget session URL (embedding our `sessionId`).
-    - A backend endpoint for the frontend to confirm `terraUserId` (obtained from Terra's redirect URL) against a `sessionId`, storing this mapping.
-- [X] Develop backend services to:
-    - Fetch a user's health data arrays (daily, sleep, activity, body) from the Terra API.
-    - Package these data arrays into a unified JSON report, noting data availability.
-- [X] Implement a backend mechanism to make the packaged health data report accessible via a session identifier.
-- [X] Include basic fallback considerations for missing data categories in the health data report.
-- [X] Implement temporary frontend page to test Terra data flow.
-
 ### 🧠 AI Archetype Generation
 
 - [X] Create `/archetype` backend route
@@ -276,13 +231,13 @@ health-archetypes-demo/
 - [X] Create a root-level configuration file (`llm.config.ts`) to specify text/image LLM models and their settings (e.g., DALL-E 3 quality, size, style); update services to use this config.
 - [X] Implement OpenAI call for text archetype generation with retries + error handling using configured model.
 - [X] Return archetype name, description, image prompt, and sliders from the text generation endpoint.
-- [X] Extend frontend test page (`TerraDataViewerPage.tsx`) to call archetype generation endpoint and display LLM response.
+- [X] Extend frontend test page to call archetype generation endpoint and display LLM response.
 
 ### 🖼 Image Generation Pipeline
 
 - [X] Create backend endpoint (`/api/archetype/generate-image`) that accepts an image prompt, calls OpenAI image API (using configured `dall-e-3` model and settings from `llm.config.ts`), and returns image data as a data URL.
 - [X] Frontend calls the text archetype generation endpoint (`/api/archetype/generate`) to get archetype details including the `imagePrompt`.
-- [X] Extend frontend test page (`TerraDataViewerPage.tsx`) to:
+- [X] Extend frontend test page to:
     - [X] Call the `/api/archetype/generate-image` endpoint using the `imagePrompt`.
     - [X] Display the generated image (from the data URL) in a new accordion section.
     - [X] Handle loading and error states specifically for the image generation step.
@@ -294,7 +249,6 @@ health-archetypes-demo/
 #### Landing Page
 
 - [X] Create `LandingPage.tsx` with CTA + minimal copy
-- [X] Integrate Terra Widget launch button (via `useTerraConnect` hook)
 - [X] Add privacy note ("local only, session deleted")
 
 #### Progress Stepper

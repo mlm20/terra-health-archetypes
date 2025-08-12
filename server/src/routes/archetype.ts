@@ -1,7 +1,5 @@
 import express, { Request, Response } from 'express';
 import OpenAI from 'openai';
-import { getTerraUserId } from '../utils/sessionManager';
-import { getUserHealthData, packageHealthDataForLLM, LLMReadyHealthReport, TerraHealthData } from '../services/terraService';
 import { generateArchetypeFromHealthData, generateArchetypeImage } from '../services/openaiService';
 import { LLM_ARCHETYPE_SYSTEM_PROMPT, LLMArchetypeResponse } from "../../../shared/constants";
 
@@ -17,24 +15,18 @@ router.post('/generate', async (req: Request, res: Response): Promise<void> => {
         return;
     }
 
-    const terraUserId = getTerraUserId(sessionId);
-    if (!terraUserId) {
-        res.status(404).json({ error: 'Session not found or Terra User ID not associated.' });
-        return;
-    }
-
     try {
-        console.log(`Archetype Gen: Fetching data for session ${sessionId}, Terra User ${terraUserId}`);
-        // Define date range again, or ensure it's passed/retrieved consistently if needed for context
-        const endDate = new Date();
-        const startDate = new Date();
-        startDate.setDate(endDate.getDate() - 28); // Consistent with terra.ts
-        const formatDate = (date: Date): string => date.toISOString().split('T')[0];
-        const healthData: LLMReadyHealthReport = packageHealthDataForLLM(
-            await getUserHealthData(terraUserId, formatDate(startDate), formatDate(endDate)),
-            startDate,
-            endDate
-        );
+        // Mock health data
+        const healthData = {
+            timePeriodDays: 28,
+            healthData: {
+                daily: [{ date: '2025-07-15', steps: 10000 }],
+                sleep: [{ date: '2025-07-15', duration_in_bed_seconds: 28800 }],
+                activity: [{ date: '2025-07-15', distance_meters: 5000 }],
+                body: [{ timestamp: '2025-07-15T12:00:00Z', heart_rate_bpm: 60 }],
+            },
+            dataAvailabilityNotes: ["Mock data is being used."],
+        };
 
         console.log(`Archetype Gen: Calling OpenAI for session ${sessionId}`);
         const archetypeDetails: LLMArchetypeResponse = await generateArchetypeFromHealthData(healthData);
@@ -51,9 +43,7 @@ router.post('/generate', async (req: Request, res: Response): Promise<void> => {
             res.status(error.status || 500).json({ error: error.message || 'OpenAI API error.', type: 'OPENAI_API_ERROR' });
         } else if (error instanceof Error) {
             // Handle other known errors (e.g., network issues, our own thrown errors)
-            if (error.message.includes('Terra User ID not associated')) {
-                res.status(404).json({ error: error.message, type: 'SESSION_ERROR' });
-            } else if (error.message.includes('OpenAI API key is not configured')) {
+            if (error.message.includes('OpenAI API key is not configured')) {
                 res.status(500).json({ error: error.message, type: 'CONFIG_ERROR' });
             } else if (error.message.includes('Failed to parse valid JSON')) {
                 res.status(502).json({ error: 'Failed to generate archetype due to LLM service error.', details: error.message, type: 'LLM_RESPONSE_PARSE_ERROR' });

@@ -1,5 +1,4 @@
 import { Routes, Route } from "react-router-dom";
-import { TerraDataViewerPage } from "./pages/TerraDataViewerPage"; // Ensure this path is correct
 import { LandingPage } from "./pages/LandingPage"; // Import the new LandingPage
 import { ArchetypeFlowPage } from "./pages/ArchetypeFlowPage"; // Import the new flow page
 
@@ -16,10 +15,6 @@ function App() {
             {/* Use LandingPage for root path */}
             <Route path="/flow" element={<ArchetypeFlowPage />} />
             {/* Add route for the flow page */}
-            <Route
-                path="/terra-data-viewer"
-                element={<TerraDataViewerPage />}
-            />
             {/* Other routes will go here */}
         </Routes>
     );

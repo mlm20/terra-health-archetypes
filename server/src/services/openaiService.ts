@@ -6,7 +6,14 @@ import {
     // LLM_EXAMPLE_ONE,
     // LLM_EXAMPLE_TWO
 } from "../../../shared/constants"; // Use path mapping
-import { LLMReadyHealthReport } from "./terraService"; // Assuming this relative path is okay within services
+
+// Define the type locally
+interface LLMReadyHealthReport {
+    timePeriodDays: number;
+    healthData: any;
+    dataAvailabilityNotes: string[];
+}
+
 // Import model configurations from root config file
 import {
     TEXT_MODEL,

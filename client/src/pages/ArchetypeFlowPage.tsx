@@ -17,14 +17,14 @@ import Navbar from "../components/Navbar"; // Import Navbar
 
 // Interfaces (Consider moving to a shared types file later)
 interface HealthDataReport {
-    // Assuming the same structure as in TerraDataViewerPage
+    
     timePeriodDays: number;
     healthData: any; // Simplified for now
     dataAvailabilityNotes: string[];
 }
 
 interface ArchetypeResult {
-    // Assuming the same structure as in TerraDataViewerPage
+    
     archetypeName: string;
     archetypeDescription: string;
     imagePrompt: string;
@@ -32,11 +32,7 @@ interface ArchetypeResult {
     imageDataUrl?: string; // Optional as it's fetched separately
 }
 
-// Define the steps for indexing
-const STEP_DEVICE_CONNECTED = 0;
-const STEP_DATA_OBTAINED = 1;
-const STEP_ARCHETYPE_DISCOVERED = 2;
-const STEP_DATA_CLEARED = 3; // Or "Completed"
+
 
 export const ArchetypeFlowPage: React.FC = () => {
     const [searchParams] = useSearchParams();
@@ -44,7 +40,7 @@ export const ArchetypeFlowPage: React.FC = () => {
 
     // State for data and flow control
     const [sessionId, setSessionId] = useState<string | null>(null);
-    const [terraUserId, setTerraUserId] = useState<string | null>(null);
+    
     const [healthReport, setHealthReport] = useState<HealthDataReport | null>(
         null
     );
@@ -54,7 +50,7 @@ export const ArchetypeFlowPage: React.FC = () => {
     const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
 
     // State for loading indicators
-    const [isConfirmingAuth, setIsConfirmingAuth] = useState<boolean>(false);
+    
     const [isFetchingData, setIsFetchingData] = useState<boolean>(false);
     const [isGeneratingArchetype, setIsGeneratingArchetype] =
         useState<boolean>(false);
@@ -64,31 +60,18 @@ export const ArchetypeFlowPage: React.FC = () => {
     // State for errors
     const [flowError, setFlowError] = useState<string | null>(null); // General error for the flow
 
-    // Derive step statuses based on current state
     const stepStatuses: StepStatusType[] = useMemo(() => {
-        const statuses: StepStatusType[] = ["idle", "idle", "idle", "idle"];
+        const statuses: StepStatusType[] = ["idle", "idle", "idle"];
 
         if (flowError) {
             // If there's a flow error, mark the current step as error
-            // Determine which step was active when the error occurred
-            // This is a simplified approach; more detailed error handling might be needed
-            if (isConfirmingAuth) statuses[STEP_DEVICE_CONNECTED] = "error";
-            else if (isFetchingData) statuses[STEP_DATA_OBTAINED] = "error";
-            else if (isGeneratingArchetype)
-                statuses[STEP_ARCHETYPE_DISCOVERED] = "error";
-            else if (isGeneratingImage)
-                statuses[STEP_ARCHETYPE_DISCOVERED] =
-                    "error"; // Image generation is part of archetype discovery step visually
-            else if (isClearingData) statuses[STEP_DATA_CLEARED] = "error";
-            else if (
-                sessionId &&
-                terraUserId &&
-                !healthReport &&
-                !archetypeData &&
-                !imageDataUrl
-            ) {
-                // Error before any async operation started, likely from initial param check
-                statuses[STEP_DEVICE_CONNECTED] = "error";
+            if (isFetchingData) statuses[0] = "error";
+            else if (isGeneratingArchetype || isGeneratingImage)
+                statuses[1] = "error";
+            else if (isClearingData) statuses[2] = "error";
+            else {
+                // Error before any async operation started
+                statuses[0] = "error";
             }
             // Mark all subsequent steps as idle
             let errorStepIndex = statuses.findIndex(
@@ -103,25 +86,15 @@ export const ArchetypeFlowPage: React.FC = () => {
         }
 
         // Happy path statuses
-        if (sessionId && terraUserId)
-            statuses[STEP_DEVICE_CONNECTED] = "complete";
+        if (healthReport) statuses[0] = "complete";
+        else if (isFetchingData) statuses[0] = "ongoing";
 
-        if (isConfirmingAuth) statuses[STEP_DEVICE_CONNECTED] = "ongoing";
-
-        if (healthReport) statuses[STEP_DATA_OBTAINED] = "complete";
-        else if (isFetchingData) statuses[STEP_DATA_OBTAINED] = "ongoing";
-        else if (sessionId && terraUserId && !isConfirmingAuth)
-            statuses[STEP_DATA_OBTAINED] = "idle"; // Ready to start fetching
-
-        if (archetypeData && imageDataUrl)
-            statuses[STEP_ARCHETYPE_DISCOVERED] = "complete";
+        if (archetypeData && imageDataUrl) statuses[1] = "complete";
         else if (isGeneratingArchetype || isGeneratingImage)
-            statuses[STEP_ARCHETYPE_DISCOVERED] = "ongoing";
-        else if (healthReport) statuses[STEP_ARCHETYPE_DISCOVERED] = "idle"; // Ready to start archetype generation
+            statuses[1] = "ongoing";
+        else if (healthReport) statuses[1] = "idle";
 
-        if (isClearingData) statuses[STEP_DATA_CLEARED] = "ongoing";
-        // Assuming Data Cleared is the final step and always completes if reached without error
-        // We might need a separate state if clearance can fail or is a distinct async op
+        if (isClearingData) statuses[2] = "ongoing";
         else if (
             archetypeData &&
             imageDataUrl &&
@@ -130,25 +103,20 @@ export const ArchetypeFlowPage: React.FC = () => {
             !isClearingData &&
             !flowError
         ) {
-            // This is a simplification; ideally, there'd be a state for clearance completion
-            // For now, assume if we've reached here and no errors/ongoing tasks, it's complete
-            statuses[STEP_DATA_CLEARED] = "complete";
+            statuses[2] = "complete";
         } else if (
             archetypeData &&
             imageDataUrl &&
             !isGeneratingArchetype &&
             !isGeneratingImage
         )
-            statuses[STEP_DATA_CLEARED] = "idle"; // Ready for clearance
+            statuses[2] = "idle";
 
         return statuses;
     }, [
-        sessionId,
-        terraUserId,
         healthReport,
         archetypeData,
         imageDataUrl,
-        isConfirmingAuth,
         isFetchingData,
         isGeneratingArchetype,
         isGeneratingImage,
@@ -156,124 +124,40 @@ export const ArchetypeFlowPage: React.FC = () => {
         flowError,
     ]);
 
-    // Effect 1: Initial check for URL params and auth confirmation
+    
+
+    // Effect 1: Initialize session
     useEffect(() => {
-        const sid = searchParams.get("sessionId");
-        const tid = searchParams.get("user_id");
-        const authError = searchParams.get("error");
+        // In a real app, you might fetch a session ID from a server here
+        // For this demo, we'll just generate a random one.
+        const newSessionId =
+            Math.random().toString(36).substring(2, 15) +
+            Math.random().toString(36).substring(2, 15);
+        setSessionId(newSessionId);
+    }, []);
 
-        setFlowError(null); // Clear previous errors on new load
-
-        if (authError) {
-            setFlowError(`Authentication failed: ${authError}`);
-            // Stop the flow here, maybe set activeStep to an error state if desired
-            return;
-        }
-
-        if (sid && tid) {
-            setSessionId(sid);
-            setTerraUserId(tid);
-            // setActiveStep(STEP_DEVICE_CONNECTED); // Mark device connected - Handled by derived status
-            setIsConfirmingAuth(true);
-
-            // Confirm auth with backend
-            fetch("/api/terra/confirm-auth", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    sessionId: sid,
-                    terraUserIdFromUrl: tid,
-                }),
-            })
-                .then(async (res) => {
-                    if (!res.ok) {
-                        const errorData = await res.json().catch(() => ({}));
-                        throw new Error(
-                            errorData.error ||
-                                `Confirm auth failed (${res.status})`
-                        );
-                    }
-                    return res.json();
-                })
-                .then(() => {
-                    console.log("Auth confirmed successfully.");
-                    // Auth success, state update will trigger next effect
-                })
-                .catch((err) => {
-                    console.error("Auth Confirmation Error:", err);
-                    setFlowError(
-                        err.message ||
-                            "Failed to confirm authentication with backend."
-                    );
-                    // Consider resetting state or stopping flow
-                })
-                .finally(() => {
-                    setIsConfirmingAuth(false);
-                });
-        } else if (sid && !tid) {
-            // Might happen if user bookmarks/reloads page after auth but before full flow
-            // Or if Terra redirect somehow misses user_id
-            setFlowError(
-                "Missing user ID from Terra redirect. Please try connecting again."
-            );
-            // Potentially attempt to fetch data if session is valid? For now, show error.
-        } else {
-            // No sessionId, likely user navigated here directly without starting flow
-            // Should ideally redirect to LandingPage or show message
-            setFlowError(
-                "No active session found. Please start from the beginning."
-            );
-        }
-    }, [searchParams]);
-
-    // Effect 2: Fetch health data report after auth is confirmed
+    // Effect 2: Fetch health data report after session is initialized
     useEffect(() => {
-        // Trigger only if auth is done (sessionId & terraUserId are set) and data isn't already fetched/fetching
-        if (
-            sessionId &&
-            terraUserId &&
-            !isConfirmingAuth &&
-            !healthReport &&
-            !isFetchingData &&
-            !flowError
-        ) {
+        // Trigger only if session is initialized and data isn't already fetched/fetching
+        if (sessionId && !healthReport && !isFetchingData && !flowError) {
             setIsFetchingData(true);
             console.log("Fetching health data report...");
 
-            fetch(`/api/terra/data-report/${sessionId}`)
-                .then(async (res) => {
-                    if (!res.ok) {
-                        const errorData = await res.json().catch(() => ({}));
-                        throw new Error(
-                            errorData.error ||
-                                `Data report fetch failed (${res.status})`
-                        );
-                    }
-                    return res.json();
-                })
-                .then((report: HealthDataReport) => {
-                    setHealthReport(report);
-                    // setActiveStep(STEP_DATA_OBTAINED); // Move stepper forward - Handled by derived status
-                    console.log("Health data obtained.");
-                })
-                .catch((err) => {
-                    console.error("Fetch Data Error:", err);
-                    setFlowError(
-                        err.message || "Failed to fetch health data report."
-                    );
-                })
-                .finally(() => {
-                    setIsFetchingData(false);
+            // We will replace this with a call to a mock data endpoint
+            // For now, let's simulate a successful fetch with some mock data
+            setTimeout(() => {
+                setHealthReport({
+                    timePeriodDays: 28,
+                    healthData: {
+                        /* mock health data */
+                    },
+                    dataAvailabilityNotes: ["Mock data is being used."],
                 });
+                setIsFetchingData(false);
+                console.log("Mock health data obtained.");
+            }, 1000);
         }
-    }, [
-        sessionId,
-        terraUserId,
-        isConfirmingAuth,
-        healthReport,
-        isFetchingData,
-        flowError,
-    ]);
+    }, [sessionId, healthReport, isFetchingData, flowError]);
 
     // Effect 3: Generate archetype text after health data is obtained
     useEffect(() => {
@@ -395,14 +279,11 @@ export const ArchetypeFlowPage: React.FC = () => {
     }, [archetypeData, imageDataUrl, isGeneratingImage, flowError]);
 
     const isLoading =
-        isConfirmingAuth ||
         isFetchingData ||
         isGeneratingArchetype ||
         isGeneratingImage ||
         isClearingData;
-    const loadingText = isConfirmingAuth
-        ? "Confirming Auth..."
-        : isFetchingData
+    const loadingText = isFetchingData
         ? "Fetching Health Data..."
         : isGeneratingArchetype
         ? "Generating Archetype..."
