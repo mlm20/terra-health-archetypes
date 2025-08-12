@@ -17,7 +17,7 @@ import {
 import { CheckIcon, WarningIcon } from "@chakra-ui/icons";
 
 const steps = [
-    { title: "Device Connected", description: "Wearable linked" },
+    { title: "Connect Wearable", description: "Link your device" },
     { title: "Health Data Obtained", description: "Syncing data" },
     { title: "Archetype Discovered", description: "Generating vibe" },
     { title: "Data Cleared", description: "Session wiped" },

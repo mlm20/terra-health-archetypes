@@ -7,6 +7,7 @@ import {
     Alert,
     AlertIcon,
     VStack,
+    Button,
     useColorModeValue,
     Flex,
     useBreakpointValue,
@@ -40,6 +41,8 @@ export const ArchetypeFlowPage: React.FC = () => {
 
     // State for data and flow control
     const [sessionId, setSessionId] = useState<string | null>(null);
+    const [isConnectedToTerra, setIsConnectedToTerra] = useState<boolean>(false);
+    const [terraUserId, setTerraUserId] = useState<string | null>(null);
     
     const [healthReport, setHealthReport] = useState<HealthDataReport | null>(
         null
@@ -50,7 +53,7 @@ export const ArchetypeFlowPage: React.FC = () => {
     const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
 
     // State for loading indicators
-    
+    const [isConnectingToTerra, setIsConnectingToTerra] = useState<boolean>(false);
     const [isFetchingData, setIsFetchingData] = useState<boolean>(false);
     const [isGeneratingArchetype, setIsGeneratingArchetype] =
         useState<boolean>(false);
@@ -61,14 +64,15 @@ export const ArchetypeFlowPage: React.FC = () => {
     const [flowError, setFlowError] = useState<string | null>(null); // General error for the flow
 
     const stepStatuses: StepStatusType[] = useMemo(() => {
-        const statuses: StepStatusType[] = ["idle", "idle", "idle"];
+        const statuses: StepStatusType[] = ["idle", "idle", "idle", "idle"];
 
         if (flowError) {
             // If there's a flow error, mark the current step as error
-            if (isFetchingData) statuses[0] = "error";
+            if (isConnectingToTerra) statuses[0] = "error";
+            else if (isFetchingData) statuses[1] = "error";
             else if (isGeneratingArchetype || isGeneratingImage)
-                statuses[1] = "error";
-            else if (isClearingData) statuses[2] = "error";
+                statuses[2] = "error";
+            else if (isClearingData) statuses[3] = "error";
             else {
                 // Error before any async operation started
                 statuses[0] = "error";
@@ -86,15 +90,23 @@ export const ArchetypeFlowPage: React.FC = () => {
         }
 
         // Happy path statuses
-        if (healthReport) statuses[0] = "complete";
-        else if (isFetchingData) statuses[0] = "ongoing";
+        // Step 0: Terra Connection
+        if (isConnectedToTerra) statuses[0] = "complete";
+        else if (isConnectingToTerra) statuses[0] = "ongoing";
 
-        if (archetypeData && imageDataUrl) statuses[1] = "complete";
+        // Step 1: Health Data Obtained
+        if (healthReport) statuses[1] = "complete";
+        else if (isFetchingData) statuses[1] = "ongoing";
+        else if (isConnectedToTerra) statuses[1] = "idle";
+
+        // Step 2: Archetype Discovered
+        if (archetypeData && imageDataUrl) statuses[2] = "complete";
         else if (isGeneratingArchetype || isGeneratingImage)
-            statuses[1] = "ongoing";
-        else if (healthReport) statuses[1] = "idle";
+            statuses[2] = "ongoing";
+        else if (healthReport) statuses[2] = "idle";
 
-        if (isClearingData) statuses[2] = "ongoing";
+        // Step 3: Data Cleared
+        if (isClearingData) statuses[3] = "ongoing";
         else if (
             archetypeData &&
             imageDataUrl &&
@@ -103,17 +115,19 @@ export const ArchetypeFlowPage: React.FC = () => {
             !isClearingData &&
             !flowError
         ) {
-            statuses[2] = "complete";
+            statuses[3] = "complete";
         } else if (
             archetypeData &&
             imageDataUrl &&
             !isGeneratingArchetype &&
             !isGeneratingImage
         )
-            statuses[2] = "idle";
+            statuses[3] = "idle";
 
         return statuses;
     }, [
+        isConnectedToTerra,
+        isConnectingToTerra,
         healthReport,
         archetypeData,
         imageDataUrl,
@@ -136,30 +150,81 @@ export const ArchetypeFlowPage: React.FC = () => {
         setSessionId(newSessionId);
     }, []);
 
-    // Effect 2: Fetch health data report after session is initialized
+    // Effect 2: Check URL parameters for Terra connection status
     useEffect(() => {
-        // Trigger only if session is initialized and data isn't already fetched/fetching
-        if (sessionId && !healthReport && !isFetchingData && !flowError) {
+        const connected = searchParams.get('connected');
+        const error = searchParams.get('error');
+        
+        if (connected === 'true') {
+            setIsConnectedToTerra(true);
+            setIsConnectingToTerra(false);
+            console.log('Terra connection successful');
+            // Clear URL parameters
+            window.history.replaceState({}, document.title, window.location.pathname);
+        } else if (connected === 'false' || error) {
+            setIsConnectedToTerra(false);
+            setIsConnectingToTerra(false);
+            setFlowError(error ? `Terra connection failed: ${decodeURIComponent(error)}` : 'Terra connection failed');
+            console.error('Terra connection failed:', error);
+            // Clear URL parameters
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+    }, [searchParams]);
+
+    // Effect 3: Poll for Terra connection status when connecting
+    useEffect(() => {
+        let pollInterval: NodeJS.Timeout;
+        
+        if (isConnectingToTerra && sessionId) {
+            const pollTerraStatus = async () => {
+                try {
+                    const response = await fetch(`/api/terra/status?sessionId=${sessionId}`);
+                    const data = await response.json();
+                    
+                    if (data.connected) {
+                        setIsConnectedToTerra(true);
+                        setIsConnectingToTerra(false);
+                        setTerraUserId(data.terraUserId);
+                        console.log('Terra connection confirmed via polling');
+                    }
+                } catch (error) {
+                    console.error('Error polling Terra status:', error);
+                }
+            };
+            
+            pollInterval = setInterval(pollTerraStatus, 2000); // Poll every 2 seconds
+        }
+        
+        return () => {
+            if (pollInterval) {
+                clearInterval(pollInterval);
+            }
+        };
+    }, [isConnectingToTerra, sessionId]);
+
+    // Effect 4: Fetch health data report after Terra is connected
+    useEffect(() => {
+        // Trigger only if Terra is connected and data isn't already fetched/fetching
+        if (sessionId && isConnectedToTerra && !healthReport && !isFetchingData && !flowError) {
             setIsFetchingData(true);
             console.log("Fetching health data report...");
 
-            // We will replace this with a call to a mock data endpoint
-            // For now, let's simulate a successful fetch with some mock data
+            // Simulate a brief delay for UX
             setTimeout(() => {
                 setHealthReport({
                     timePeriodDays: 28,
                     healthData: {
-                        /* mock health data */
+                        /* Terra health data will be fetched in archetype generation */
                     },
-                    dataAvailabilityNotes: ["Mock data is being used."],
+                    dataAvailabilityNotes: ["Terra health data will be used for archetype generation."],
                 });
                 setIsFetchingData(false);
-                console.log("Mock health data obtained.");
-            }, 1000);
+                console.log("Health data report prepared for Terra integration.");
+            }, 1500);
         }
-    }, [sessionId, healthReport, isFetchingData, flowError]);
+    }, [sessionId, isConnectedToTerra, healthReport, isFetchingData, flowError]);
 
-    // Effect 3: Generate archetype text after health data is obtained
+    // Effect 5: Generate archetype text after health data is obtained
     useEffect(() => {
         // Trigger only if data is present and archetype isn't fetched/fetching
         if (
@@ -210,7 +275,7 @@ export const ArchetypeFlowPage: React.FC = () => {
         flowError,
     ]);
 
-    // Effect 4: Generate archetype image after archetype text (and prompt) is obtained
+    // Effect 6: Generate archetype image after archetype text (and prompt) is obtained
     useEffect(() => {
         // Trigger only if archetype text is present, prompt exists, and image isn't fetched/fetching
         if (
@@ -227,6 +292,7 @@ export const ArchetypeFlowPage: React.FC = () => {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     imagePrompt: archetypeData.imagePrompt,
+                    sessionId: sessionId, // Include sessionId for auto-disconnection
                 }),
             })
                 .then(async (res) => {
@@ -279,11 +345,14 @@ export const ArchetypeFlowPage: React.FC = () => {
     }, [archetypeData, imageDataUrl, isGeneratingImage, flowError]);
 
     const isLoading =
+        isConnectingToTerra ||
         isFetchingData ||
         isGeneratingArchetype ||
         isGeneratingImage ||
         isClearingData;
-    const loadingText = isFetchingData
+    const loadingText = isConnectingToTerra
+        ? "Connecting to Terra..."
+        : isFetchingData
         ? "Fetching Health Data..."
         : isGeneratingArchetype
         ? "Generating Archetype..."
@@ -293,14 +362,103 @@ export const ArchetypeFlowPage: React.FC = () => {
         ? "Clearing Data..."
         : "Processing...";
 
+    // Function to initiate Terra connection
+    const connectToTerra = async () => {
+        if (!sessionId || isConnectingToTerra) {
+            return;
+        }
+
+        setIsConnectingToTerra(true);
+        setFlowError(null);
+
+        try {
+            console.log("Initiating Terra connection...");
+            
+            const response = await fetch("/api/terra/widget-session", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ sessionId }),
+            });
+
+            if (!response.ok) {
+                throw new Error("Failed to create Terra widget session");
+            }
+
+            const data = await response.json();
+            console.log("Terra widget session created:", data);
+
+            // Open Terra widget in a new window
+            const popup = window.open(data.sessionUrl, 'terra-auth', 'width=500,height=700,scrollbars=yes');
+            
+            // Monitor popup closure
+            const checkPopup = setInterval(() => {
+                if (popup?.closed) {
+                    clearInterval(checkPopup);
+                    // Give a moment for the callback to process
+                    setTimeout(() => {
+                        if (!isConnectedToTerra && isConnectingToTerra) {
+                            setIsConnectingToTerra(false);
+                            setFlowError("Terra connection was cancelled or failed");
+                        }
+                    }, 2000);
+                }
+            }, 1000);
+
+        } catch (error) {
+            console.error("Error creating Terra widget session:", error);
+            setIsConnectingToTerra(false);
+            setFlowError(error instanceof Error ? error.message : "Failed to connect to Terra");
+        }
+    };
+
     // Helper function to render main content based on state
     const renderMainContent = () => {
         if (flowError) {
             return (
-                <Alert status="error" borderRadius="md">
-                    <AlertIcon />
-                    <Text>{flowError}</Text>
-                </Alert>
+                <VStack spacing={4} align="center" justify="center" height="100%">
+                    <Alert status="error" borderRadius="md" maxWidth="400px">
+                        <AlertIcon />
+                        <Text>{flowError}</Text>
+                    </Alert>
+                    {!isConnectedToTerra && (
+                        <Button
+                            colorScheme="teal"
+                            onClick={connectToTerra}
+                            disabled={!sessionId || isConnectingToTerra}
+                            size="lg"
+                        >
+                            Try Again
+                        </Button>
+                    )}
+                </VStack>
+            );
+        }
+
+        // Show Terra connection button if not connected
+        if (!isConnectedToTerra && !isConnectingToTerra) {
+            return (
+                <VStack
+                    spacing={6}
+                    align="center"
+                    justify="center"
+                    height="100%"
+                >
+                    <Text
+                        fontSize="xl"
+                        color={useColorModeValue("gray.600", "gray.400")}
+                        textAlign="center"
+                    >
+                        Connect your fitness tracker to generate your personalized health archetype.
+                    </Text>
+                    <Button
+                        colorScheme="teal"
+                        onClick={connectToTerra}
+                        disabled={!sessionId}
+                        size="lg"
+                    >
+                        Connect Wearable
+                    </Button>
+                </VStack>
             );
         }
 

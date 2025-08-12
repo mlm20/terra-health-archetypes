@@ -3,6 +3,7 @@ dotenv.config({ path: '../.env' }); // Load environment variables FIRST
 
 import express, { Express, Request, Response } from 'express';
 import archetypeRouter from './routes/archetype'; // Import Archetype routes
+import terraRouter from './routes/terra'; // Import Terra routes
 
 const app: Express = express();
 
@@ -15,6 +16,7 @@ app.get('/', (req: Request, res: Response) => {
 
 // API routes
 app.use('/api/archetype', archetypeRouter); // Use Archetype routes
+app.use('/api/terra', terraRouter); // Use Terra routes
 
 // If running locally, listen on port 3000
 if (process.env.NODE_ENV !== 'production') {
