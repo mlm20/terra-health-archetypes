@@ -26,8 +26,8 @@ router.post('/widget-session', async (req: Request, res: Response): Promise<void
         // Generate widget session with callback URLs
         const response = await client.authentication.generatewidgetsession({
             reference_id: sessionId,
-            auth_success_redirect_url: `http://18.170.33.156:3000/api/terra/callback?session_id=${sessionId}`,
-            auth_failure_redirect_url: `http://18.170.33.156:3000/api/terra/callback?session_id=${sessionId}&error=auth_failed`
+            auth_success_redirect_url: `http://localhost:5174/api/terra/callback?session_id=${sessionId}`,
+            auth_failure_redirect_url: `http://localhost:5174/api/terra/callback?session_id=${sessionId}&error=auth_failed`
         });
 
         if (response.status === 'success') {
@@ -140,16 +140,14 @@ router.post('/fetch-data', async (req: Request, res: Response): Promise<void> =>
             bodyData,
             dailyData,
             nutritionData,
-            menstruationData,
-            plannedWorkoutData
+            menstruationData
         ] = await Promise.allSettled([
             client.activity.fetch({ user_id: terraUserId, start_date: startDateTimestamp, end_date: endDateTimestamp }),
             client.sleep.fetch({ user_id: terraUserId, start_date: startDateTimestamp, end_date: endDateTimestamp }),
             client.body.fetch({ user_id: terraUserId, start_date: startDateTimestamp, end_date: endDateTimestamp }),
             client.daily.fetch({ user_id: terraUserId, start_date: startDateTimestamp, end_date: endDateTimestamp }),
             client.nutrition.fetch({ user_id: terraUserId, start_date: startDateTimestamp, end_date: endDateTimestamp }),
-            client.menstruation.fetch({ user_id: terraUserId, start_date: startDateTimestamp, end_date: endDateTimestamp }),
-            client.plannedworkout.fetch({ user_id: terraUserId, start_date: startDateTimestamp, end_date: endDateTimestamp })
+            client.menstruation.fetch({ user_id: terraUserId, start_date: startDateTimestamp, end_date: endDateTimestamp })
         ]);
 
         // Process results and extract data
@@ -161,8 +159,7 @@ router.post('/fetch-data', async (req: Request, res: Response): Promise<void> =>
                 body: bodyData.status === 'fulfilled' && 'data' in bodyData.value ? bodyData.value.data || [] : [],
                 daily: dailyData.status === 'fulfilled' && 'data' in dailyData.value ? dailyData.value.data || [] : [],
                 nutrition: nutritionData.status === 'fulfilled' && 'data' in nutritionData.value ? nutritionData.value.data || [] : [],
-                menstruation: menstruationData.status === 'fulfilled' && 'data' in menstruationData.value ? menstruationData.value.data || [] : [],
-                plannedWorkout: plannedWorkoutData.status === 'fulfilled' && 'data' in plannedWorkoutData.value ? plannedWorkoutData.value.data || [] : []
+                menstruation: menstruationData.status === 'fulfilled' && 'data' in menstruationData.value ? menstruationData.value.data || [] : []
             },
             dataAvailabilityNotes: [] as string[]
         };
@@ -175,7 +172,6 @@ router.post('/fetch-data', async (req: Request, res: Response): Promise<void> =>
             { name: 'Daily', result: dailyData },
             { name: 'Nutrition', result: nutritionData },
             { name: 'Menstruation', result: menstruationData },
-            { name: 'Planned Workout', result: plannedWorkoutData }
         ];
 
         dataTypes.forEach(({ name, result }) => {

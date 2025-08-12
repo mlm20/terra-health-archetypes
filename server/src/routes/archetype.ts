@@ -48,15 +48,13 @@ router.post('/generate', async (req: Request, res: Response): Promise<void> => {
                 dailyData,
                 nutritionData,
                 menstruationData,
-                plannedWorkoutData
             ] = await Promise.allSettled([
                 client.activity.fetch({ user_id: terraUserId, start_date: startDateTimestamp, end_date: endDateTimestamp }),
                 client.sleep.fetch({ user_id: terraUserId, start_date: startDateTimestamp, end_date: endDateTimestamp }),
                 client.body.fetch({ user_id: terraUserId, start_date: startDateTimestamp, end_date: endDateTimestamp }),
                 client.daily.fetch({ user_id: terraUserId, start_date: startDateTimestamp, end_date: endDateTimestamp }),
                 client.nutrition.fetch({ user_id: terraUserId, start_date: startDateTimestamp, end_date: endDateTimestamp }),
-                client.menstruation.fetch({ user_id: terraUserId, start_date: startDateTimestamp, end_date: endDateTimestamp }),
-                client.plannedworkout.fetch({ user_id: terraUserId, start_date: startDateTimestamp, end_date: endDateTimestamp })
+                client.menstruation.fetch({ user_id: terraUserId, start_date: startDateTimestamp, end_date: endDateTimestamp })
             ]);
 
             // Process results and extract data
@@ -68,8 +66,7 @@ router.post('/generate', async (req: Request, res: Response): Promise<void> => {
                     body: bodyData.status === 'fulfilled' && 'data' in bodyData.value ? bodyData.value.data || [] : [],
                     daily: dailyData.status === 'fulfilled' && 'data' in dailyData.value ? dailyData.value.data || [] : [],
                     nutrition: nutritionData.status === 'fulfilled' && 'data' in nutritionData.value ? nutritionData.value.data || [] : [],
-                    menstruation: menstruationData.status === 'fulfilled' && 'data' in menstruationData.value ? menstruationData.value.data || [] : [],
-                    plannedWorkout: plannedWorkoutData.status === 'fulfilled' && 'data' in plannedWorkoutData.value ? plannedWorkoutData.value.data || [] : []
+                    menstruation: menstruationData.status === 'fulfilled' && 'data' in menstruationData.value ? menstruationData.value.data || [] : []
                 },
                 dataAvailabilityNotes: [] as string[]
             };
@@ -81,8 +78,7 @@ router.post('/generate', async (req: Request, res: Response): Promise<void> => {
                 { name: 'Body', result: bodyData },
                 { name: 'Daily', result: dailyData },
                 { name: 'Nutrition', result: nutritionData },
-                { name: 'Menstruation', result: menstruationData },
-                { name: 'Planned Workout', result: plannedWorkoutData }
+                { name: 'Menstruation', result: menstruationData }
             ];
 
             dataTypes.forEach(({ name, result }) => {
